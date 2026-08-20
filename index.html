@@ -3,126 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>每日台美股聲量 Top 10 & 分析師情報站</title>
-    <!-- Tailwind CSS (UI 樣式) -->
+    <title>台股 KOL 追蹤 & 實戰 K 線新聞情報站</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Vue.js 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- TradingView Widget Script -->
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen">
 
-    <div id="app" class="max-w-4xl mx-auto p-4 md:p-6">
+    <div id="app" class="max-w-6xl mx-auto p-4 md:p-6">
+        
         <!-- 頁首標題 -->
-        <header class="mb-6 text-center">
-            <h1 class="text-3xl font-bold text-amber-400">📈 每日台美股聲量 Top 10 & 分析師情報站</h1>
-            <p class="text-sm text-slate-400 mt-2">更新時間：{{ lastUpdated }} (每日自動更新)</p>
+        <header class="mb-6 border-b border-slate-800 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-amber-400">📈 台股 KOL 追蹤 & 實戰點位情報站</h1>
+                <p class="text-xs text-slate-400 mt-1">即時監測追蹤名單動態、股票 K 線圖表與每日焦點新聞整理</p>
+            </div>
+            <div class="text-xs text-slate-400 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+                更新時間：<span class="text-amber-300 font-mono">{{ currentTime }}</span>
+            </div>
         </header>
 
-        <!-- X (Twitter) 美股實戰大師快速導覽牆 -->
-        <section class="mb-8 bg-slate-800 border border-slate-700 rounded-xl p-4">
-            <h2 class="text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
-                <span>🐦 美股 X (Twitter) 頂級實戰交易員 & 點位大師</span>
-            </h2>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <a v-for="trader in twitterTraders" :key="trader.handle" :href="'https://x.com/' + trader.handle" target="_blank"
-                   class="bg-slate-900 hover:bg-slate-700 border border-slate-700 p-2.5 rounded-lg transition flex flex-col justify-between">
+        <!-- 區塊一：KOL 追蹤名單快速過濾列 -->
+        <section class="mb-6 bg-slate-800 border border-slate-700 rounded-xl p-4">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-sm font-bold text-amber-300 flex items-center gap-2">
+                    <span>🎯 追蹤名單與本日提及指標</span>
+                </h2>
+                <button v-if="selectedKol" @click="selectedKol = null" class="text-xs text-slate-400 hover:text-amber-400 underline">
+                    顯示全部 KOL 提及股票
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                <button v-for="kol in kolList" :key="kol.id"
+                        @click="toggleKolFilter(kol.name)"
+                        :class="selectedKol === kol.name ? 'border-amber-400 bg-slate-700' : 'border-slate-700 bg-slate-900 hover:bg-slate-800'"
+                        class="border p-2.5 rounded-lg text-left transition flex flex-col justify-between">
                     <div>
-                        <div class="font-bold text-xs text-slate-200">{{ trader.name }}</div>
-                        <div class="text-xs text-amber-400">@{{ trader.handle }}</div>
+                        <div class="text-xs font-bold text-slate-200">{{ kol.name }}</div>
+                        <div class="text-[10px] text-slate-400">{{ kol.platform }}</div>
                     </div>
-                    <div class="text-xs text-slate-400 mt-1.5">{{ trader.focus }}</div>
-                </a>
+                    <div class="mt-2 flex justify-between items-center text-[10px]">
+                        <span class="text-amber-400">今日提及: {{ kol.mentionedCount }}</span>
+                        <span class="w-1.5 h-1.5 rounded-full" :class="kol.active ? 'bg-emerald-400' : 'bg-slate-600'"></span>
+                    </div>
+                </button>
             </div>
         </section>
 
-        <!-- 市場切換頁籤 -->
-        <div class="flex justify-center gap-4 mb-6">
-            <button @click="currentMarket = 'TW'" 
-                    :class="currentMarket === 'TW' ? 'bg-amber-500 text-black font-extrabold' : 'bg-slate-800 text-slate-300'"
-                    class="px-6 py-2.5 rounded-lg font-bold transition shadow-md">
-                🇹🇼 台股 Top 10
-            </button>
-            <button @click="currentMarket = 'US'" 
-                    :class="currentMarket === 'US' ? 'bg-amber-500 text-black font-extrabold' : 'bg-slate-800 text-slate-300'"
-                    class="px-6 py-2.5 rounded-lg font-bold transition shadow-md">
-                🇺🇸 美股 Top 10
-            </button>
-        </div>
-
-        <!-- 股票與分析師建議列表 -->
-        <div class="space-y-4">
-            <div v-for="(stock, index) in filteredStocks" :key="stock.symbol" 
-                 class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg hover:border-slate-600 transition">
-                
-                <!-- 卡片頂部：排名、代碼、聲量與情緒 -->
-                <div class="flex justify-between items-center cursor-pointer" @click="stock.expanded = !stock.expanded">
-                    <div class="flex items-center gap-3">
-                        <span class="text-xl font-extrabold w-8 text-amber-400">#{{ index + 1 }}</span>
-                        <div>
-                            <h2 class="text-lg font-bold text-slate-100">
-                                {{ stock.name }} <span class="text-sm text-slate-400">({{ stock.symbol }})</span>
-                            </h2>
-                            <p class="text-xs text-slate-400">
-                                全網聲量：<span class="text-amber-300 font-semibold">{{ stock.mentions }}</span> 次討論
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center gap-3">
-                        <span :class="stock.sentiment === 'BULL' ? 'bg-red-500/20 text-red-400 border-red-500' : 'bg-green-500/20 text-green-400 border-green-500'"
-                              class="text-xs px-2.5 py-1 rounded-full border font-bold">
-                            {{ stock.sentiment === 'BULL' ? '看多 (Bull)' : '看空 (Bear)' }}
+        <!-- 主區域：網頁左側（KOL提及股票+K線）與右側（焦點新聞整理） -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- 左側 2 欄：KOL 提及股票與技術分析卡片 -->
+            <div class="lg:col-span-2 space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-base font-bold text-slate-200 flex items-center gap-2">
+                        <span>🔥 KOL 今日提及個股分析與 K 線</span>
+                        <span v-if="selectedKol" class="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">
+                            篩選: {{ selectedKol }}
                         </span>
-                        <span class="text-slate-400 text-sm">{{ stock.expanded ? '▲' : '▼' }}</span>
-                    </div>
+                    </h2>
+                    <span class="text-xs text-slate-400">共 {{ filteredMentionedStocks.length }} 筆標的</span>
                 </div>
 
-                <!-- 點擊展開：分析師/大師進出場點位細節 -->
-                <div v-if="stock.expanded" class="mt-4 pt-4 border-t border-slate-700 space-y-3">
+                <div v-if="filteredMentionedStocks.length === 0" class="text-center py-10 bg-slate-800/40 rounded-xl border border-slate-800 text-slate-500 text-sm">
+                    該 KOL 今日尚無公開提及的新標的。
+                </div>
+
+                <!-- 股票卡片列表 -->
+                <div v-for="stock in filteredMentionedStocks" :key="stock.symbol" 
+                     class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-md transition hover:border-slate-600">
                     
-                    <!-- 進出場價位資訊看板 -->
-                    <div class="grid grid-cols-3 gap-2 bg-slate-900 p-3 rounded-lg text-center text-xs md:text-sm">
+                    <!-- 卡片標題區域 -->
+                    <div class="flex justify-between items-start cursor-pointer" @click="toggleStockExpand(stock)">
                         <div>
-                            <span class="block text-slate-400 text-xs">建議進場/關鍵區間</span>
-                            <span class="font-extrabold text-amber-400">{{ stock.entryPrice || '觀望 / 未指定' }}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-base font-bold text-slate-100">{{ stock.name }}</span>
+                                <span class="text-xs font-mono text-slate-400">({{ stock.symbol }})</span>
+                                <span :class="getSentimentClass(stock.sentiment)" class="text-[11px] px-2 py-0.5 rounded font-bold border">
+                                    {{ getSentimentText(stock.sentiment) }}
+                                </span>
+                            </div>
+                            <div class="text-xs text-slate-400 mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                                <span>提及 KOL：<strong class="text-amber-300">{{ stock.kolName }}</strong></span>
+                                <span>發布時間：<strong class="text-slate-300">{{ stock.time }}</strong></span>
+                            </div>
                         </div>
-                        <div>
-                            <span class="block text-slate-400 text-xs">目標價 (TP)</span>
-                            <span class="font-extrabold text-red-400">{{ stock.targetPrice || '未提供' }}</span>
-                        </div>
-                        <div>
-                            <span class="block text-slate-400 text-xs">停損/失效價 (SL)</span>
-                            <span class="font-extrabold text-green-400">{{ stock.stopLoss || '未提供' }}</span>
+
+                        <div class="text-right">
+                            <div class="text-sm font-extrabold font-mono" :class="stock.change >= 0 ? 'text-red-400' : 'text-emerald-400'">
+                                {{ stock.price }} ({{ stock.change >= 0 ? '+' : '' }}{{ stock.change }}%)
+                            </div>
+                            <span class="text-[11px] text-amber-400 underline mt-1 block">
+                                {{ stock.expanded ? '收起 K 線與細節 ▲' : '查看 K 線圖與剖析 ▼' }}
+                            </span>
                         </div>
                     </div>
 
-                    <!-- 觀點與詳細摘要 -->
-                    <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
-                        <div class="flex justify-between items-center mb-1.5">
-                            <h3 class="text-xs font-bold text-amber-300">💡 主要分析師 / 大師觀點摘要：</h3>
-                            <span class="text-xs text-slate-400">來源：{{ stock.analystName }}</span>
+                    <!-- 簡要多空分析點位 -->
+                    <div class="mt-3 bg-slate-900/90 p-3 rounded-lg border border-slate-700/60 text-xs space-y-1.5">
+                        <div class="text-slate-200">
+                            <strong class="text-amber-300">💡 觀點拆解：</strong>{{ stock.analysis }}
                         </div>
-                        <p class="text-xs md:text-sm text-slate-200 leading-relaxed">
-                            {{ stock.summary }}
-                        </p>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2 pt-1 text-[11px] text-slate-400 border-t border-slate-800">
+                            <span>建議觀察點位：<strong class="text-slate-200 font-mono">{{ stock.entryPrice }}</strong></span>
+                            <span>關鍵支撐 / 壓力：<strong class="text-slate-200 font-mono">{{ stock.keyLevels }}</strong></span>
+                            <span>風險停损：<strong class="text-red-400 font-mono">{{ stock.stopLoss }}</strong></span>
+                        </div>
                     </div>
 
-                    <!-- 原始來源按鈕 -->
-                    <div class="text-right">
-                        <a :href="stock.sourceUrl" target="_blank" 
-                           class="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 underline font-semibold">
-                            查看原始推文 / 分析來源 ↗
-                        </a>
+                    <!-- 展開區域：TradingView K 線圖 Widget -->
+                    <div v-if="stock.expanded" class="mt-4 pt-3 border-t border-slate-700">
+                        <div class="text-xs font-bold text-slate-300 mb-2 flex justify-between items-center">
+                            <span>📊 即時 K 線技術圖表 (TradingView)</span>
+                            <span class="text-[10px] text-slate-500">可自由切換 K 線週期與指標</span>
+                        </div>
+                        <!-- K 線繪製容器 -->
+                        <div :id="'tv-chart-' + stock.symbol" class="w-full h-[320px] rounded-lg overflow-hidden border border-slate-700"></div>
                     </div>
 
                 </div>
-
             </div>
+
+            <!-- 右側 1 欄：每日精選焦點新聞整理區 -->
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-base font-bold text-slate-200 flex items-center gap-2">
+                        <span>📰 每日焦點新聞與產業整理</span>
+                    </h2>
+                    <span class="text-xs text-slate-400">即時情報</span>
+                </div>
+
+                <div class="space-y-3">
+                    <div v-for="news in newsList" :key="news.id" 
+                         class="bg-slate-800 border border-slate-700 p-3.5 rounded-xl text-xs space-y-2 hover:border-slate-600 transition">
+                        
+                        <div class="flex justify-between items-start gap-2">
+                            <span class="bg-slate-700 text-amber-300 text-[10px] px-2 py-0.5 rounded border border-slate-600 font-semibold">
+                                {{ news.category }}
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-mono">{{ news.time }}</span>
+                        </div>
+
+                        <h3 class="font-bold text-sm text-slate-100 leading-snug">
+                            {{ news.title }}
+                        </h3>
+
+                        <p class="text-slate-300 leading-relaxed bg-slate-900/60 p-2 rounded">
+                            {{ news.summary }}
+                        </p>
+
+                        <div class="flex justify-between items-center text-[11px] pt-1 border-t border-slate-700/50">
+                            <span class="text-slate-400">受惠/受影響標的：<strong class="text-amber-400">{{ news.relatedStocks }}</strong></span>
+                            <span :class="news.impact === 'POSITIVE' ? 'text-red-400' : 'text-emerald-400'" class="font-bold">
+                                {{ news.impact === 'POSITIVE' ? '利多 ↑' : '利空 ↓' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
-        
-        <!-- 免責聲明 -->
-        <footer class="mt-8 text-center text-xs text-slate-500">
-            免責聲明：本網頁數據係由自動化 AI 爬蟲與公開資訊彙整，僅供參考，不構成任何個人投資買賣建議。
+
+        <footer class="mt-10 text-center text-xs text-slate-500 border-t border-slate-800 pt-4">
+            免責聲明：本系統僅供公開資訊整合與技術圖表展示，不構成任何投資建議與買賣依據。
         </footer>
     </div>
 
@@ -133,69 +180,168 @@
             createApp({
                 data() {
                     return {
-                        currentMarket: 'US',
-                        lastUpdated: '2026-08-21 08:00',
-                        
-                        twitterTraders: [
-                            { name: 'Adam Mancini', handle: 'AdamMancini4', focus: 'SPY/QQQ 每日精準關鍵點位' },
-                            { name: 'Mark Minervini', handle: 'MarkMinervini', focus: '兩屆冠軍/VCP突破與停損' },
-                            { name: 'Brian Shannon', handle: 'alphatrends', focus: 'AVWAP指標/熱門股進場Trigger' },
-                            { name: 'Ripster', handle: 'ripster47', focus: 'EMA Clouds/動能股點位警報' },
-                            { name: 'Dan Zanger', handle: 'DanZanger', focus: '世界紀錄飆股型態突破' },
-                            { name: 'Peter Brandt', handle: 'PeterLBrandt', focus: '40年圖表大師/經典型態學' },
-                            { name: 'Liz Ann Sonders', handle: 'LizAnnSonders', focus: '嘉信首席/基本面與宏觀數據' },
-                            { name: 'Caleb Franzen', handle: 'CalebFranzen', focus: '動能通道與多空轉折點' }
+                        currentTime: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }),
+                        selectedKol: null,
+
+                        // 追蹤 KOL 名單
+                        kolList: [
+                            { id: 1, name: '巨人傑', platform: 'FB / 專欄', mentionedCount: 2, active: true },
+                            { id: 2, name: '菲力斯', platform: 'FB 筆記', mentionedCount: 1, active: true },
+                            { id: 3, name: '股癌 Gooaye', platform: 'Podcast / TG', mentionedCount: 3, active: true },
+                            { id: 4, name: '游庭皓', platform: 'YouTube', mentionedCount: 1, active: true },
+                            { id: 5, name: '權證小哥', platform: 'CMoney', mentionedCount: 2, active: true }
                         ],
 
-                        stocks: [
+                        // KOL 提及的個股與分析資料
+                        mentionedStocks: [
                             {
-                                market: 'US',
-                                symbol: 'SPY',
-                                name: '標普500 ETF',
-                                mentions: 4820,
-                                sentiment: 'BULL',
-                                analystName: 'Adam Mancini (@AdamMancini4)',
-                                entryPrice: '558.50 附近回測',
-                                targetPrice: '564.00 / 568.00',
-                                stopLoss: '555.00 (跌破轉空)',
-                                summary: 'Mancini 指出 558.5 是今日多空關鍵 Pivotal Level。若守住此點位，多頭目標直指 564 區域；若失守則可能下探 552 尋求支撐。',
-                                sourceUrl: 'https://x.com/AdamMancini4',
-                                expanded: true
-                            },
-                            {
-                                market: 'US',
-                                symbol: 'NVDA',
-                                name: '輝達',
-                                mentions: 3950,
-                                sentiment: 'BULL',
-                                analystName: 'Brian Shannon (@alphatrends)',
-                                entryPrice: '128.50 突破站穩',
-                                targetPrice: '140.00',
-                                stopLoss: '122.00',
-                                summary: 'Shannon 採用 Anchored VWAP 分析，NVDA 在 128.50 有強烈突破阻力區。只要日線收在該點位之上即符合進場條件，停損設於前低。',
-                                sourceUrl: 'https://x.com/alphatrends',
+                                symbol: '2330',
+                                tradingViewSymbol: 'TWSE:2330',
+                                name: '台積電',
+                                price: '985.0',
+                                change: 1.55,
+                                kolName: '股癌 Gooaye',
+                                time: '10:15 AM',
+                                sentiment: 'BULL', // BULL / BEAR / NEUTRAL
+                                entryPrice: '970 - 980 區間',
+                                keyLevels: '支撐 965 / 壓力 1010',
+                                stopLoss: '跌破 950',
+                                analysis: '先進封裝 CoWoS 產能持續供不應求，法人籌碼鎖碼清晰，拉回皆為買點。',
                                 expanded: false
                             },
                             {
-                                market: 'TW',
-                                symbol: '2330',
-                                name: '台積電',
-                                mentions: 1680,
+                                symbol: '2317',
+                                tradingViewSymbol: 'TWSE:2317',
+                                name: '鴻海',
+                                price: '202.5',
+                                change: -0.98,
+                                kolName: '菲力斯',
+                                time: '09:40 AM',
+                                sentiment: 'NEUTRAL',
+                                entryPrice: '198 - 200 整數關卡',
+                                keyLevels: '支撐 195 / 壓力 210',
+                                stopLoss: '跌破 192',
+                                analysis: 'GB200 伺服器機櫃量產時程符合預期，短線隨大盤洗盤震盪，適合量縮時分批布局。',
+                                expanded: false
+                            },
+                            {
+                                symbol: '2454',
+                                tradingViewSymbol: 'TWSE:2454',
+                                name: '聯發科',
+                                price: '1240.0',
+                                change: 2.48,
+                                kolName: '巨人傑',
+                                time: '11:20 AM',
                                 sentiment: 'BULL',
-                                analystName: 'PTT 股市版 / 籌碼大師彙整',
-                                entryPrice: '975 - 985 區間',
-                                targetPrice: '1100',
-                                stopLoss: '940',
-                                summary: '外資與投信連續性買超，技術面於千元關卡前進行健康震盪洗盤。市場普遍看好下半季 CoWoS 產能開出，建議逢回分批佈局。',
-                                sourceUrl: 'https://www.ptt.cc/bbs/Stock/index.html',
-                                expanded: true
+                                entryPrice: '1220 突破帶量時',
+                                keyLevels: '支撐 1190 / 壓力 1280',
+                                stopLoss: '跌破 1170',
+                                analysis: '旗艦晶片出貨量上修，技術面形成 W 底突破型態，主力分點連續買超。',
+                                expanded: false
+                            },
+                            {
+                                symbol: '3231',
+                                tradingViewSymbol: 'TWSE:3231',
+                                name: '緯創',
+                                price: '108.5',
+                                change: -1.81,
+                                kolName: '權證小哥',
+                                time: '08:50 AM',
+                                sentiment: 'BEAR',
+                                entryPrice: '反彈至 112 附近觀望',
+                                keyLevels: '支撐 105 / 壓力 113',
+                                stopLoss: '突破 115 停損空單',
+                                analysis: '隔日衝大戶出貨，短線籌碼極度混亂，均線呈現蓋頂壓力，短線避開。',
+                                expanded: false
+                            }
+                        ],
+
+                        // 焦點新聞整理
+                        newsList: [
+                            {
+                                id: 1,
+                                category: '半導體 / AI',
+                                time: '08:30 AM',
+                                title: '輝達 Blackwell 晶片投片量上修，台積電先進封裝產能全滿',
+                                summary: '供應鏈消息指出，各大雲端業者 (CSP) 需求強勁，晶圓代工大廠產能維持滿載至明年季度，相關設備廠營收看增。',
+                                relatedStocks: '台積電 (2330)、萬潤 (6187)',
+                                impact: 'POSITIVE'
+                            },
+                            {
+                                id: 2,
+                                category: '總體經濟',
+                                time: '07:45 AM',
+                                title: '美聯儲降息預期升溫，外資期貨空單顯著減碼',
+                                summary: '最新通膨數據符合預期，美債殖利率回落，外資於台股期貨市場空單減少 3,000 口，有利台股大盤維繫多頭氣勢。',
+                                relatedStocks: '加權指數 (TAIEX)、富邦金 (2881)',
+                                impact: 'POSITIVE'
+                            },
+                            {
+                                id: 3,
+                                category: '電子代工',
+                                time: '09:10 AM',
+                                title: '伺服器機組零組件短缺，部分代工廠出貨遞延',
+                                summary: '由於高階水冷散熱零組件交期延長，部分 AI 伺服器出貨量可能順延至下季度反映，短線衝擊營收成長動能。',
+                                relatedStocks: '廣達 (2382)、緯創 (3231)',
+                                impact: 'NEGATIVE'
                             }
                         ]
                     }
                 },
                 computed: {
-                    filteredStocks() {
-                        return this.stocks.filter(s => s.market === this.currentMarket);
+                    filteredMentionedStocks() {
+                        if (!this.selectedKol) return this.mentionedStocks;
+                        return this.mentionedStocks.filter(s => s.kolName === this.selectedKol);
+                    }
+                },
+                methods: {
+                    toggleKolFilter(kolName) {
+                        if (this.selectedKol === kolName) {
+                            this.selectedKol = null;
+                        } else {
+                            this.selectedKol = kolName;
+                        }
+                    },
+                    getSentimentText(sentiment) {
+                        if (sentiment === 'BULL') return '看多 (Bull)';
+                        if (sentiment === 'BEAR') return '看空 (Bear)';
+                        return '中性/觀望';
+                    },
+                    getSentimentClass(sentiment) {
+                        if (sentiment === 'BULL') return 'bg-red-500/20 text-red-400 border-red-500/30';
+                        if (sentiment === 'BEAR') return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+                        return 'bg-slate-700 text-slate-300 border-slate-600';
+                    },
+                    toggleStockExpand(stock) {
+                        stock.expanded = !stock.expanded;
+                        if (stock.expanded) {
+                            // 延遲渲染 TradingView，確保 DOM 已載入
+                            this.$nextTick(() => {
+                                this.renderTradingViewWidget(stock);
+                            });
+                        }
+                    },
+                    renderTradingViewWidget(stock) {
+                        const containerId = 'tv-chart-' + stock.symbol;
+                        const container = document.getElementById(containerId);
+                        if (!container) return;
+                        
+                        container.innerHTML = ''; // 清空
+
+                        new TradingView.widget({
+                            "width": "100%",
+                            "height": 320,
+                            "symbol": stock.tradingViewSymbol,
+                            "interval": "D",
+                            "timezone": "Asia/Taipei",
+                            "theme": "dark",
+                            "style": "1",
+                            "locale": "zh_TW",
+                            "toolbar_bg": "#1e293b",
+                            "enable_publishing": false,
+                            "allow_symbol_change": true,
+                            "container_id": containerId
+                        });
                     }
                 }
             }).mount('#app');
