@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>每日台美股聲量 Top 10 & 分析師進出場情報站</title>
-    <!-- Tailwind CSS (簡化 UI 樣式) -->
+    <title>每日台美股聲量 Top 10 & 分析師情報站</title>
+    <!-- Tailwind CSS (UI 樣式) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Vue.js 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -19,7 +19,7 @@
         </header>
 
         <!-- X (Twitter) 美股實戰大師快速導覽牆 -->
-        <section class="mb-8 bg-slate-800/80 border border-slate-700 rounded-xl p-4">
+        <section class="mb-8 bg-slate-800 border border-slate-700 rounded-xl p-4">
             <h2 class="text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
                 <span>🐦 美股 X (Twitter) 頂級實戰交易員 & 點位大師</span>
             </h2>
@@ -28,9 +28,9 @@
                    class="bg-slate-900 hover:bg-slate-700 border border-slate-700 p-2.5 rounded-lg transition flex flex-col justify-between">
                     <div>
                         <div class="font-bold text-xs text-slate-200">{{ trader.name }}</div>
-                        <div class="text-[10px] text-amber-400">@{{ trader.handle }}</div>
+                        <div class="text-xs text-amber-400">@{{ trader.handle }}</div>
                     </div>
-                    <div class="text-[11px] text-slate-400 mt-1.5">{{ trader.focus }}</div>
+                    <div class="text-xs text-slate-400 mt-1.5">{{ trader.focus }}</div>
                 </a>
             </div>
         </section>
@@ -81,26 +81,26 @@
                 <div v-if="stock.expanded" class="mt-4 pt-4 border-t border-slate-700 space-y-3">
                     
                     <!-- 進出場價位資訊看板 -->
-                    <div class="grid grid-cols-3 gap-2 bg-slate-900/90 p-3 rounded-lg text-center text-xs md:text-sm">
+                    <div class="grid grid-cols-3 gap-2 bg-slate-900 p-3 rounded-lg text-center text-xs md:text-sm">
                         <div>
-                            <span class="block text-slate-400 text-[11px]">建議進場/關鍵區間</span>
+                            <span class="block text-slate-400 text-xs">建議進場/關鍵區間</span>
                             <span class="font-extrabold text-amber-400">{{ stock.entryPrice || '觀望 / 未指定' }}</span>
                         </div>
                         <div>
-                            <span class="block text-slate-400 text-[11px]">目標價 (TP)</span>
+                            <span class="block text-slate-400 text-xs">目標價 (TP)</span>
                             <span class="font-extrabold text-red-400">{{ stock.targetPrice || '未提供' }}</span>
                         </div>
                         <div>
-                            <span class="block text-slate-400 text-[11px]">停損/失效價 (SL)</span>
+                            <span class="block text-slate-400 text-xs">停損/失效價 (SL)</span>
                             <span class="font-extrabold text-green-400">{{ stock.stopLoss || '未提供' }}</span>
                         </div>
                     </div>
 
                     <!-- 觀點與詳細摘要 -->
-                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                    <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
                         <div class="flex justify-between items-center mb-1.5">
-                            <h4 class="text-xs font-bold text-amber-300">💡 主要分析師 / 大師觀點摘要：</h4>
-                            <span class="text-[11px] text-slate-400">來源：{{ stock.analystName }}</span>
+                            <h3 class="text-xs font-bold text-amber-300">💡 主要分析師 / 大師觀點摘要：</h3>
+                            <span class="text-xs text-slate-400">來源：{{ stock.analystName }}</span>
                         </div>
                         <p class="text-xs md:text-sm text-slate-200 leading-relaxed">
                             {{ stock.summary }}
@@ -127,79 +127,79 @@
     </div>
 
     <script>
-        const { createApp } = Vue;
+        document.addEventListener('DOMContentLoaded', () => {
+            const { createApp } = Vue;
 
-        createApp({
-            data() {
-                return {
-                    currentMarket: 'US',
-                    lastUpdated: '2026-08-21 08:00',
-                    
-                    // X 上重點追蹤的美股大師名單
-                    twitterTraders: [
-                        { name: 'Adam Mancini', handle: 'AdamMancini4', focus: 'SPY/QQQ 每日精準關鍵點位' },
-                        { name: 'Mark Minervini', handle: 'MarkMinervini', focus: '兩屆冠軍/VCP突破與停損' },
-                        { name: 'Brian Shannon', handle: 'alphatrends', focus: 'AVWAP指標/熱門股進場Trigger' },
-                        { name: 'Ripster', handle: 'ripster47', focus: 'EMA Clouds/動能股點位警報' },
-                        { name: 'Dan Zanger', handle: 'DanZanger', focus: '世界紀錄飆股型態突破' },
-                        { name: 'Peter Brandt', handle: 'PeterLBrandt', focus: '40年圖表大師/經典型態學' },
-                        { name: 'Liz Ann Sonders', handle: 'LizAnnSonders', focus: '嘉信首席/基本面與宏觀數據' },
-                        { name: 'Caleb Franzen', handle: 'CalebFranzen', focus: '動能通道與多空轉折點' }
-                    ],
+            createApp({
+                data() {
+                    return {
+                        currentMarket: 'US',
+                        lastUpdated: '2026-08-21 08:00',
+                        
+                        twitterTraders: [
+                            { name: 'Adam Mancini', handle: 'AdamMancini4', focus: 'SPY/QQQ 每日精準關鍵點位' },
+                            { name: 'Mark Minervini', handle: 'MarkMinervini', focus: '兩屆冠軍/VCP突破與停損' },
+                            { name: 'Brian Shannon', handle: 'alphatrends', focus: 'AVWAP指標/熱門股進場Trigger' },
+                            { name: 'Ripster', handle: 'ripster47', focus: 'EMA Clouds/動能股點位警報' },
+                            { name: 'Dan Zanger', handle: 'DanZanger', focus: '世界紀錄飆股型態突破' },
+                            { name: 'Peter Brandt', handle: 'PeterLBrandt', focus: '40年圖表大師/經典型態學' },
+                            { name: 'Liz Ann Sonders', handle: 'LizAnnSonders', focus: '嘉信首席/基本面與宏觀數據' },
+                            { name: 'Caleb Franzen', handle: 'CalebFranzen', focus: '動能通道與多空轉折點' }
+                        ],
 
-                    // 每日聲量與進出場資訊 (可由 Python 後端每日寫入更新)
-                    stocks: [
-                        {
-                            market: 'US',
-                            symbol: 'SPY',
-                            name: '標普500 ETF',
-                            mentions: 4820,
-                            sentiment: 'BULL',
-                            analystName: 'Adam Mancini (@AdamMancini4)',
-                            entryPrice: '558.50 附近回測',
-                            targetPrice: '564.00 / 568.00',
-                            stopLoss: '555.00 (跌破轉空)',
-                            summary: 'Mancini 指出 558.5 是今日多空關鍵 Pivotal Level。若守住此點位，多頭目標直指 564 區域；若失守則可能下探 552 尋求支撐。',
-                            sourceUrl: 'https://x.com/AdamMancini4',
-                            expanded: true
-                        },
-                        {
-                            market: 'US',
-                            symbol: 'NVDA',
-                            name: '輝達',
-                            mentions: 3950,
-                            sentiment: 'BULL',
-                            analystName: 'Brian Shannon (@alphatrends)',
-                            entryPrice: '128.50 突破站穩',
-                            targetPrice: '140.00',
-                            stopLoss: '122.00',
-                            summary: 'Shannon 採用 Anchored VWAP 分析，NVDA 在 128.50 有強烈突破阻力區。只要日線收在該點位之上即符合進場條件，停損設於前低。',
-                            sourceUrl: 'https://x.com/alphatrends',
-                            expanded: false
-                        },
-                        {
-                            market: 'TW',
-                            symbol: '2330',
-                            name: '台積電',
-                            mentions: 1680,
-                            sentiment: 'BULL',
-                            analystName: 'PTT 股市版 / 籌碼大師彙整',
-                            entryPrice: '975 - 985 區間',
-                            targetPrice: '1100',
-                            stopLoss: '940',
-                            summary: '外資與投信連續性買超，技術面於千元關卡前進行健康震盪洗盤。市場普遍看好下半季 CoWoS 產能開出，建議逢回分批佈局。',
-                            sourceUrl: 'https://www.ptt.cc/bbs/Stock/index.html',
-                            expanded: true
-                        }
-                    ]
+                        stocks: [
+                            {
+                                market: 'US',
+                                symbol: 'SPY',
+                                name: '標普500 ETF',
+                                mentions: 4820,
+                                sentiment: 'BULL',
+                                analystName: 'Adam Mancini (@AdamMancini4)',
+                                entryPrice: '558.50 附近回測',
+                                targetPrice: '564.00 / 568.00',
+                                stopLoss: '555.00 (跌破轉空)',
+                                summary: 'Mancini 指出 558.5 是今日多空關鍵 Pivotal Level。若守住此點位，多頭目標直指 564 區域；若失守則可能下探 552 尋求支撐。',
+                                sourceUrl: 'https://x.com/AdamMancini4',
+                                expanded: true
+                            },
+                            {
+                                market: 'US',
+                                symbol: 'NVDA',
+                                name: '輝達',
+                                mentions: 3950,
+                                sentiment: 'BULL',
+                                analystName: 'Brian Shannon (@alphatrends)',
+                                entryPrice: '128.50 突破站穩',
+                                targetPrice: '140.00',
+                                stopLoss: '122.00',
+                                summary: 'Shannon 採用 Anchored VWAP 分析，NVDA 在 128.50 有強烈突破阻力區。只要日線收在該點位之上即符合進場條件，停損設於前低。',
+                                sourceUrl: 'https://x.com/alphatrends',
+                                expanded: false
+                            },
+                            {
+                                market: 'TW',
+                                symbol: '2330',
+                                name: '台積電',
+                                mentions: 1680,
+                                sentiment: 'BULL',
+                                analystName: 'PTT 股市版 / 籌碼大師彙整',
+                                entryPrice: '975 - 985 區間',
+                                targetPrice: '1100',
+                                stopLoss: '940',
+                                summary: '外資與投信連續性買超，技術面於千元關卡前進行健康震盪洗盤。市場普遍看好下半季 CoWoS 產能開出，建議逢回分批佈局。',
+                                sourceUrl: 'https://www.ptt.cc/bbs/Stock/index.html',
+                                expanded: true
+                            }
+                        ]
+                    }
+                },
+                computed: {
+                    filteredStocks() {
+                        return this.stocks.filter(s => s.market === this.currentMarket);
+                    }
                 }
-            },
-            computed: {
-                filteredStocks() {
-                    return this.stocks.filter(s => s.market === this.currentMarket);
-                }
-            }
-        }).mount('#app')
+            }).mount('#app');
+        });
     </script>
 </body>
 </html>
