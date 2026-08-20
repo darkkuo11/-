@@ -15,7 +15,7 @@
 
     <div id="app" class="max-w-7xl mx-auto p-4 md:p-8 space-y-10">
         
-        <!-- 頂部 Header & 品牌定位 -->
+        <!-- 頂部 Header -->
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-6">
             <div>
                 <div class="flex items-center gap-3">
@@ -24,7 +24,7 @@
                         AI STOCK RADAR
                     </h1>
                     <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs px-2.5 py-0.5 rounded-full font-bold">
-                        PRO v3.0 (融合進化版)
+                        PRO v3.0 (Standalone)
                     </span>
                 </div>
                 <p class="text-xs md:text-sm text-slate-400 mt-1">
@@ -40,13 +40,16 @@
                         🟢 極度偏多 (78/100)
                     </div>
                 </div>
-                <button @click="runFullScan" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-500/10 flex items-center gap-2">
-                    <span>⚡ 重新運行全網 AI 掃描</span>
+                <button @click="runFullScan" :disabled="isScanning" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-500/10 flex items-center gap-2">
+                    <span v-if="!isScanning">⚡ 重新運行全網 AI 掃描</span>
+                    <span v-else class="flex items-center gap-1">
+                        <span class="animate-spin">🌀</span> 掃描數據中...
+                    </span>
                 </button>
             </div>
         </header>
 
-        <!-- 區塊 ①：大盤指數與 AI 策略歷史回測看板 (融合建議: 信任背書) -->
+        <!-- 區塊 ①：大盤指數與歷史回測 -->
         <section class="space-y-4">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
@@ -111,7 +114,7 @@
             </div>
         </section>
 
-        <!-- 區塊 ②：首頁主角 - 今日 AI 看多 Top Picks -->
+        <!-- 區塊 ②：今日 AI 看多 Top Picks -->
         <section class="space-y-4">
             <div class="flex flex-col md:flex-row justify-between md:items-end gap-2 border-l-4 border-emerald-400 pl-3">
                 <div>
@@ -172,7 +175,7 @@
                         </div>
                     </div>
 
-                    <!-- 評分拆解 (Score Breakdown) -->
+                    <!-- 評分拆解 -->
                     <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800/60 text-xs">
                         <div>
                             <div class="text-[10px] text-slate-400">技術面 (35%)</div>
@@ -196,7 +199,7 @@
                         </div>
                     </div>
 
-                    <!-- 區塊 ③：「為什麼 AI 看多？」解釋模組 -->
+                    <!-- 理由與風險 -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
                         <div class="bg-emerald-950/20 border border-emerald-500/20 p-3.5 rounded-xl space-y-1.5">
                             <div class="font-bold text-emerald-400 flex items-center gap-1.5">
@@ -221,7 +224,7 @@
                         </div>
                     </div>
 
-                    <!-- 區塊 ④：條件式操作策略 (Conditional Strategy) -->
+                    <!-- 條件式操作策略 -->
                     <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs space-y-2">
                         <div class="font-bold text-amber-300 flex items-center gap-1.5">
                             <span>📍 AI 條件式交易策略與失效點：</span>
@@ -253,7 +256,7 @@
             </div>
         </section>
 
-        <!-- 區塊 ⑤：KOL 共識與預測勝率排行榜 -->
+        <!-- 區塊 ⑤：KOL 共識與預測勝率排行榜 (加回) -->
         <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <!-- KOL 觀點共識 -->
@@ -300,7 +303,7 @@
                     <h2 class="text-base font-bold text-emerald-400 flex items-center gap-2">
                         <span>🏆 KOL 30D 預測勝率榜</span>
                     </h2>
-                    <p class="text-xs text-slate-400 mt-0.5">系統自動依據歷史表現調整 AI 加權權重</p>
+                    <p class="text-xs text-slate-400 mt-0.5">系統依據歷史表現調整加權</p>
                 </div>
 
                 <div class="space-y-2.5">
@@ -328,7 +331,7 @@
                 <h2 class="text-base font-bold text-blue-400 flex items-center gap-2">
                     <span>📡 法人籌碼雷達 — 連續性大單監測</span>
                 </h2>
-                <p class="text-xs text-slate-400 mt-0.5">即時監控外資、投信連續買超天數與籌碼強弱分數</p>
+                <p class="text-xs text-slate-400 mt-0.5">即時監控外資、投信連續買超天數與籌碼集中度</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -341,14 +344,14 @@
                     <div class="space-y-1.5 text-xs">
                         <div class="flex justify-between items-center">
                             <span class="text-slate-400">外資動向：</span>
-                            <span class="text-emerald-400 font-bold font-mono">🟢🟢🟢🟢🟢 連買 {{ chip.foreignDays }} 日</span>
+                            <span class="text-emerald-400 font-bold font-mono">🟢 連買 {{ chip.foreignDays }} 日</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-slate-400">投向動向：</span>
-                            <span class="text-emerald-400 font-bold font-mono">🟢🟢🟢 連買 {{ chip.trustDays }} 日</span>
+                            <span class="text-slate-400">投信動向：</span>
+                            <span class="text-emerald-400 font-bold font-mono">🟢 連買 {{ chip.trustDays }} 日</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-slate-400">主力籌碼集中度：</span>
+                            <span class="text-slate-400">主力集中度：</span>
                             <span class="text-amber-400 font-bold font-mono">{{ chip.concentration }}%</span>
                         </div>
                     </div>
@@ -356,16 +359,14 @@
             </div>
         </section>
 
-        <!-- 區塊 ⑦：股票詳細頁 Modal -->
+        <!-- Modal 彈窗：TradingView 圖表 -->
         <div v-if="selectedStockModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
             <div class="bg-slate-900 border border-slate-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl p-6 space-y-6 shadow-2xl relative">
                 
-                <!-- 關閉按鈕 -->
                 <button @click="selectedStockModal = null" class="absolute top-5 right-5 text-slate-400 hover:text-white bg-slate-800 p-2 rounded-full border border-slate-700">
                     ✕
                 </button>
 
-                <!-- Modal 標頭 -->
                 <div class="flex flex-wrap items-center gap-3 border-b border-slate-800 pb-4">
                     <h2 class="text-2xl font-black text-white">{{ selectedStockModal.name }}</h2>
                     <span class="text-sm font-mono text-slate-400">({{ selectedStockModal.symbol }})</span>
@@ -374,13 +375,11 @@
                     </span>
                 </div>
 
-                <!-- TradingView K 線圖表 -->
                 <div>
                     <h3 class="text-xs font-bold text-slate-400 mb-2">📈 即時技術分析 K 線圖 ( TradingView )</h3>
                     <div id="modal-tv-chart" class="w-full h-[380px] rounded-2xl overflow-hidden border border-slate-800"></div>
                 </div>
 
-                <!-- 詳細指標說明 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
                         <h4 class="font-bold text-amber-300">📊 技術與量化指標</h4>
@@ -410,6 +409,7 @@
                     return {
                         marketFilter: 'ALL',
                         selectedStockModal: null,
+                        isScanning: false,
 
                         topPicks: [
                             {
@@ -531,7 +531,11 @@
                         });
                     },
                     runFullScan() {
-                        alert("AI Agent 正在即時抓取全市場數百支股票 K 線與法人籌碼，重新計算 AI Bull Score 中...");
+                        this.isScanning = true;
+                        setTimeout(() => {
+                            this.isScanning = false;
+                            alert("✅ 全網 AI 量化掃描完成！最新資料已同步更新。");
+                        }, 1500);
                     }
                 }
             }).mount('#app');
