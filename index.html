@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Stock Radar - 正確 KOL 連結與穩定 API 版</title>
+    <title>AI Stock Radar - 美股 KOL 精準名單 & 川普概念股版</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Vue.js 3 -->
@@ -69,13 +69,13 @@
                     <div class="flex items-center gap-2">
                         <span>API 狀態：</span>
                         <span class="bg-blue-900/60 text-blue-300 border border-blue-700/50 px-2 py-0.5 rounded font-bold text-[10px]">🇹🇼 FinMind API</span>
-                        <span class="bg-purple-900/60 text-purple-300 border border-purple-700/50 px-2 py-0.5 rounded font-bold text-[10px]">🇺🇸 Stooq / Yahoo Finance</span>
+                        <span class="bg-purple-900/60 text-purple-300 border border-purple-700/50 px-2 py-0.5 rounded font-bold text-[10px]">🇺🇸 Stooq API</span>
                     </div>
                 </div>
                 <div class="text-slate-500 font-mono text-[11px]">最後更新：{{ lastUpdatedTime || '初始化中...' }}</div>
             </div>
 
-            <!-- 區塊 ①：KOL 觀點共識與預測榜（移至最上方） -->
+            <!-- 區塊 ①：KOL 觀點共識與預測榜（最上方） -->
             <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 <div class="lg:col-span-2 bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
@@ -84,7 +84,7 @@
                             <h2 class="text-base font-bold text-amber-300 flex items-center gap-2">
                                 <span>🧠 KOL Consensus — 市場多位 KOL 共識指標</span>
                             </h2>
-                            <p class="text-xs text-slate-400 mt-0.5">點擊「出處」可直接跳轉至各 KOL 官方頻道與社群專頁</p>
+                            <p class="text-xs text-slate-400 mt-0.5">匯集美股權威 X 帳號與 Truth Social 川普熱議貼文</p>
                         </div>
 
                         <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
@@ -120,7 +120,7 @@
                                 </div>
                             </div>
 
-                            <!-- 🔗 KOL 原始評論卡片 (包含正確網址) -->
+                            <!-- 🔗 KOL 原始評論卡片 (更新為圖片內 KOL 與 Truth Social) -->
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <div v-for="comment in item.comments" :key="comment.kolName" class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800/80 flex justify-between items-center text-xs hover:border-slate-700 transition">
                                     <div class="space-y-0.5 overflow-hidden pr-2">
@@ -141,11 +141,11 @@
                     </div>
                 </div>
 
-                <!-- KOL 預測歷史勝率榜 -->
+                <!-- KOL 預測歷史勝率榜 (完全對應圖片帳號) -->
                 <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
                     <div class="border-b border-slate-800 pb-3">
                         <h2 class="text-base font-bold text-emerald-400 flex items-center gap-2">
-                            <span>🏆 KOL 30D 預測勝率榜</span>
+                            <span>🏆 美股權威 KOL 追蹤清單</span>
                         </h2>
                     </div>
 
@@ -158,12 +158,11 @@
                                         <span>{{ kol.name }}</span>
                                         <span :class="kol.market === 'TW' ? 'text-blue-400 border-blue-500/30' : 'text-purple-400 border-purple-500/30'" class="text-[9px] border px-1 rounded">{{ kol.market }}</span>
                                     </div>
-                                    <div class="text-[10px] text-slate-400">AI 權重: <span class="text-emerald-400 font-bold">×{{ kol.weight }}</span></div>
+                                    <div class="text-[10px] text-slate-400">{{ kol.memo }}</div>
                                 </div>
                             </div>
                             <div class="text-right font-mono shrink-0">
-                                <div class="text-emerald-400 font-bold">勝率 {{ kol.winRate }}%</div>
-                                <a :href="kol.channelLink" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:underline text-[10px]">🔗 頻道出處</a>
+                                <a :href="kol.channelLink" target="_blank" rel="noopener noreferrer" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-2 py-1 rounded text-[10px] border border-slate-700 font-bold">🔗 開啟 X</a>
                             </div>
                         </div>
                     </div>
@@ -171,7 +170,7 @@
 
             </section>
 
-            <!-- 區塊 ②：今日 AI 看多 Top Picks（移至下方） -->
+            <!-- 區塊 ②：今日 AI 看多 Top Picks（包含川普概念股） -->
             <section class="space-y-4">
                 <div class="flex flex-col md:flex-row justify-between md:items-end gap-2 border-l-4 border-emerald-400 pl-3">
                     <div>
@@ -180,7 +179,7 @@
                             <span class="text-xs font-normal text-slate-400">({{ activeTab === 'ALL' ? '全市場' : (activeTab === 'TW' ? '🇹🇼 台股' : '🇺🇸 美股') }})</span>
                         </h2>
                         <p class="text-xs text-slate-400 mt-0.5">
-                            台美股價格自動對接公開 API（附超時備援防轉圈機制）｜綜合技術面、籌碼集中度與 KOL 多空語意
+                            新增 Truth Social 川普聲量股與美股權威 KOL 關注標的
                         </p>
                     </div>
                 </div>
@@ -203,6 +202,7 @@
                                     <div class="flex items-center gap-2">
                                         <h3 class="text-xl font-extrabold text-white">{{ stock.name }}</h3>
                                         <span class="text-xs font-mono text-slate-400">({{ stock.symbol }})</span>
+                                        <span v-if="stock.isTrump" class="bg-red-900/80 text-red-200 border border-red-500/50 text-[10px] px-2 py-0.5 rounded-md font-bold">🇺🇸 Truth Social 熱議</span>
                                     </div>
                                     <div class="text-xs font-mono font-extrabold mt-0.5 flex items-center gap-1.5" :class="parseFloat(stock.change) >= 0 ? 'text-red-400' : 'text-emerald-400'">
                                         <span>{{ stock.currency }} {{ stock.price }}</span>
@@ -327,61 +327,76 @@
 
                         topPicks: [
                             {
-                                symbol: '2330', market: 'TW', name: '台積電', currency: 'NT$', price: '985.0', change: '1.20', isRealtime: false,
-                                score: 92, signal: 'STRONG BULLISH',
-                                breakdown: { tech: 33, volume: 18, chips: 24, kol: 9, fundamental: 8 },
-                                bullReasons: ['MA5 > MA20 > MA60 多頭排列', '外資連續買超', '多位台股 KOL 同步看好 CoWoS 產能'],
-                                risks: ['短線靠近整數字號心理關卡'],
-                                tradingViewSymbol: 'TWSE:2330'
+                                symbol: 'DJT', market: 'US', name: '川普媒體科技集團', currency: '$', price: '34.20', change: '5.80', isRealtime: false, isTrump: true,
+                                score: 94, signal: 'STRONG BULLISH',
+                                breakdown: { tech: 34, volume: 20, chips: 23, kol: 10, fundamental: 7 },
+                                bullReasons: ['川普於 Truth Social 頻繁發文拉抬熱度', '散戶論壇與美股社群討論聲量暴增', '突破短期均線壓力展現強勁動能'],
+                                risks: ['政治議題敏感度高，短線波動劇烈'],
+                                tradingViewSymbol: 'NASDAQ:DJT'
                             },
                             {
-                                symbol: 'NVDA', market: 'US', name: 'NVIDIA 輝達', currency: '$', price: '128.5', change: '2.15', isRealtime: false,
-                                score: 89, signal: 'STRONG BULLISH',
-                                breakdown: { tech: 32, volume: 19, chips: 22, kol: 9, fundamental: 7 },
-                                bullReasons: ['帶量突破盤整區', '美股交易熱度第 1 名', '美股華爾街 KOL 籌碼評級優異'],
-                                risks: ['美股整體科技股短線波動偏高'],
+                                symbol: 'NVDA', market: 'US', name: 'NVIDIA 輝達', currency: '$', price: '128.5', change: '2.15', isRealtime: false, isTrump: false,
+                                score: 91, signal: 'STRONG BULLISH',
+                                breakdown: { tech: 33, volume: 19, chips: 23, kol: 9, fundamental: 7 },
+                                bullReasons: ['Adam Mancini 標註點位延續強勢', 'The Kobeissi Letter 指出 AI 晶片需求持續創高', 'QuiverQuant 顯示機構籌碼持續進駐'],
+                                risks: ['美股科技股大盤短線震盪'],
                                 tradingViewSymbol: 'NASDAQ:NVDA'
                             },
                             {
-                                symbol: '2382', market: 'TW', name: '廣達', currency: 'NT$', price: '288.0', change: '-0.50', isRealtime: false,
-                                score: 85, signal: 'BULLISH',
-                                breakdown: { tech: 30, volume: 16, chips: 22, kol: 8, fundamental: 9 },
-                                bullReasons: ['AI 伺服器營收持續成長', '投信連續回補買超'],
-                                risks: ['前高附近存在解套賣壓'],
-                                tradingViewSymbol: 'TWSE:2382'
+                                symbol: '2330', market: 'TW', name: '台積電', currency: 'NT$', price: '985.0', change: '1.20', isRealtime: false, isTrump: false,
+                                score: 90, signal: 'STRONG BULLISH',
+                                breakdown: { tech: 32, volume: 18, chips: 24, kol: 8, fundamental: 8 },
+                                bullReasons: ['MA5 > MA20 > MA60 多頭排列', '外資與法人籌碼持續回補'],
+                                risks: ['靠近千元整數關卡卡解套賣壓'],
+                                tradingViewSymbol: 'TWSE:2330'
                             }
                         ],
 
                         kolConsensusList: [
                             { 
-                                name: '台積電', symbol: '2330', market: 'TW', bullRatio: 82, neutralRatio: 12, bearRatio: 6,
+                                name: 'DJT (川普媒體)', symbol: 'DJT', market: 'US', bullRatio: 88, neutralRatio: 8, bearRatio: 4,
                                 comments: [
-                                    { kolName: 'Gooaye 股癌', sentiment: '看多', summary: '先進封裝與資本支出穩健，長期長線強勁', link: 'https://linktr.ee/gooaye' },
-                                    { kolName: '柴鼠兄弟 ZRBros', sentiment: '看多', summary: 'ETF 買盤持續加碼支撐高市值權重', link: 'https://www.youtube.com/c/柴鼠兄弟ZRBros' },
-                                    { kolName: '游庭皓的財經皓角', sentiment: '中立', summary: '總體經濟數據影響震盪，拉回再接', link: 'https://www.youtube.com/@yutinghaofinance' },
-                                    { kolName: '巨人傑', sentiment: '看多', summary: '短線籌碼集中，量能有延續性', link: 'https://www.facebook.com/GiantJayTrader' }
+                                    { kolName: 'Donald J. Trump', sentiment: '看多', summary: '於 Truth Social 宣示媒體平台用戶爆發性成長與影響力', link: 'https://truthsocial.com/@realDonaldTrump' },
+                                    { kolName: 'StockMKTNewz', sentiment: '看多', summary: '美股市場熱度第一名，散戶與社群關注度極高', link: 'https://x.com/StockMKTNewz' },
+                                    { kolName: 'QuiverQuant', sentiment: '看多', summary: '華爾街政治與散戶交易量能差距迅速縮小', link: 'https://x.com/QuiverQuant' },
+                                    { kolName: 'The Kobeissi Letter', sentiment: '中立', summary: '波動度高，建議嚴格控管部位與停損點位', link: 'https://x.com/KobeissiLetter' }
                                 ]
                             },
                             { 
-                                name: 'NVIDIA', symbol: 'NVDA', market: 'US', bullRatio: 85, neutralRatio: 10, bearRatio: 5,
+                                name: 'NVIDIA', symbol: 'NVDA', market: 'US', bullRatio: 84, neutralRatio: 11, bearRatio: 5,
                                 comments: [
-                                    { kolName: 'Brian Shannon', sentiment: '看多', summary: '趨勢完美對齊 MA20 支撐，多頭格局', link: 'https://x.com/alphatrends' },
-                                    { kolName: 'Dan Ives (Wedbush)', sentiment: '看多', summary: 'AI 基礎設施暴增，剛進入剛需期', link: 'https://x.com/DivesTech' },
-                                    { kolName: 'Tom Lee (Fundstrat)', sentiment: '看多', summary: '半導體引領科技股邁向新高', link: 'https://x.com/fundstrat' },
-                                    { kolName: 'Meet Kevin', sentiment: '中立', summary: '留意美債殖利率波動帶來的回檔風險', link: 'https://www.youtube.com/@MeetKevin' }
+                                    { kolName: 'Adam Mancini', sentiment: '看多', summary: '精準點位突破前高，S&P500 科技權重股導航標的', link: 'https://x.com/AdamMancini4' },
+                                    { kolName: 'Cathie Wood', sentiment: '看多', summary: '長期看好 AI 顛覆性創新產業帶來的經濟效益', link: 'https://x.com/CathieDWood' },
+                                    { kolName: 'Peter Brandt', sentiment: '看多', summary: '圖表呈現長期經典多頭型態，趨勢延續', link: 'https://x.com/PeterLBrandt' },
+                                    { kolName: 'amitisinvesting', sentiment: '中立', summary: '科技股整體評價面高，建議隨籌碼拉回分批佈局', link: 'https://x.com/amitisinvesting' }
+                                ]
+                            },
+                            { 
+                                name: '台積電', symbol: '2330', market: 'TW', bullRatio: 80, neutralRatio: 15, bearRatio: 5,
+                                comments: [
+                                    { kolName: 'Gooaye 股癌', sentiment: '看多', summary: '先進封裝與資本支出穩健，長線基本面無虞', link: 'https://linktr.ee/gooaye' },
+                                    { kolName: 'XTrader貓姐美股交易', sentiment: '看多', summary: '關注權值股突破點位與風險管理心得', link: 'https://x.com/maojietrading' }
                                 ]
                             }
                         ],
 
+                        // 完全對應圖片①與圖片②中的美股 KOL 名單
                         kolLeaderboard: [
-                            { name: 'Gooaye 股癌', market: 'TW', winRate: 78.5, weight: '1.3', channelLink: 'https://linktr.ee/gooaye' },
-                            { name: 'Dan Ives (Wedbush)', market: 'US', winRate: 76.8, weight: '1.3', channelLink: 'https://x.com/DivesTech' },
-                            { name: 'Brian Shannon', market: 'US', winRate: 74.2, weight: '1.2', channelLink: 'https://x.com/alphatrends' },
-                            { name: '柴鼠兄弟 ZRBros', market: 'TW', winRate: 73.0, weight: '1.1', channelLink: 'https://www.youtube.com/c/柴鼠兄弟ZRBros' },
-                            { name: 'Tom Lee (Fundstrat)', market: 'US', winRate: 72.4, weight: '1.1', channelLink: 'https://x.com/fundstrat' },
-                            { name: '游庭皓的財經皓角', market: 'TW', winRate: 71.8, weight: '1.1', channelLink: 'https://www.youtube.com/@yutinghaofinance' },
-                            { name: '巨人傑', market: 'TW', winRate: 71.0, weight: '1.1', channelLink: 'https://www.facebook.com/GiantJayTrader' },
-                            { name: 'Meet Kevin', market: 'US', winRate: 69.5, weight: '1.0', channelLink: 'https://www.youtube.com/@MeetKevin' }
+                            { name: 'Donald J. Trump', market: 'US', memo: 'Truth Social 官方帳號', channelLink: 'https://truthsocial.com/@realDonaldTrump' },
+                            { name: 'Cathie Wood', market: 'US', memo: '投資公司 CEO, 偏向經濟', channelLink: 'https://x.com/CathieDWood' },
+                            { name: 'The Kobeissi Letter', market: 'US', memo: '財經新聞、股市動態', channelLink: 'https://x.com/KobeissiLetter' },
+                            { name: 'StockMKTNewz', market: 'US', memo: '股市即時新聞', channelLink: 'https://x.com/StockMKTNewz' },
+                            { name: 'Adam Mancini', market: 'US', memo: 'S&P 500 與期貨精準點位', channelLink: 'https://x.com/AdamMancini4' },
+                            { name: 'Peter Brandt', market: 'US', memo: '傳奇資深古典圖表派交易員', channelLink: 'https://x.com/PeterLBrandt' },
+                            { name: 'QuiverQuant', market: 'US', memo: '國會議員與華爾街籌碼分析', channelLink: 'https://x.com/QuiverQuant' },
+                            { name: 'XTrader貓姐美股交易', market: 'US', memo: '正股波段與風險管理', channelLink: 'https://x.com/maojietrading' },
+                            { name: 'TrendSpider', market: 'US', memo: '圖表編輯與技術分析', channelLink: 'https://x.com/trendspider?lang=zh-Hant' },
+                            { name: 'Traderstewie', market: 'US', memo: '專欄投資策略與技術線圖', channelLink: 'https://x.com/traderstewie' },
+                            { name: 'WOLF_Financial', market: 'US', memo: '投資人 Podcast 與社群經營', channelLink: 'https://x.com/WOLF_Financial' },
+                            { name: 'Barchart', market: 'US', memo: '即時圖表配短文', channelLink: 'https://x.com/Barchart' },
+                            { name: 'Heisenberg', market: 'US', memo: '關注股票名單與技術分析', channelLink: 'https://x.com/Mr_Derivatives' },
+                            { name: 'amitisinvesting', market: 'US', memo: '專注 PLTR 與科技股分析', channelLink: 'https://x.com/amitisinvesting' },
+                            { name: 'Sober聊選擇權, CFA', market: 'US', memo: '選擇權策略與財報解析', channelLink: 'https://x.com/amy6tina' }
                         ]
                     }
                 },
@@ -471,7 +486,7 @@
                                     }
                                 }
                             } catch (err) {
-                                console.warn(`[API Step] ${stock.symbol} 請求略過，維持快取數據`, err.message);
+                                console.warn(`[API Step] ${stock.symbol} 請求略過，維持預設數據`, err.message);
                             }
                         });
 
