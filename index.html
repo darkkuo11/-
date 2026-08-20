@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Stock Radar - 全網量化選股與 KOL 決策輔助平台</title>
+    <title>AI Stock Radar - 台美股即時 API 整合版</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Vue.js 3 -->
@@ -13,351 +13,281 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-emerald-500 selection:text-slate-950">
 
-    <div id="app" class="max-w-7xl mx-auto p-4 md:p-8 space-y-10">
+    <div id="app" class="relative">
         
-        <!-- 頂部 Header -->
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-6">
-            <div>
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl">🤖</span>
-                    <h1 class="text-2xl md:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
+        <!-- Navigation Bar -->
+        <nav class="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 shadow-xl">
+            <div class="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between gap-4">
+                
+                <div class="flex items-center gap-2 cursor-pointer" @click="setActiveTab('ALL')">
+                    <span class="text-2xl">🤖</span>
+                    <span class="font-black text-lg md:text-xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
                         AI STOCK RADAR
-                    </h1>
-                    <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs px-2.5 py-0.5 rounded-full font-bold">
-                        PRO v3.0 (Standalone)
                     </span>
                 </div>
-                <p class="text-xs md:text-sm text-slate-400 mt-1">
-                    跨平台市場聲量 × 技術面多頭 × 法人籌碼雷達 × AI 量化評分引擎 × 5年策略回測
-                </p>
-            </div>
-            
-            <div class="flex items-center gap-3">
-                <div class="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-right">
-                    <div class="text-[10px] text-slate-400">大盤情緒指標</div>
-                    <div class="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                        🟢 極度偏多 (78/100)
-                    </div>
+
+                <!-- 主分頁選單 -->
+                <div class="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-bold">
+                    <button @click="setActiveTab('ALL')" 
+                            :class="activeTab === 'ALL' ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 shadow-lg' : 'text-slate-400 hover:text-white'" 
+                            class="px-3 py-2 rounded-lg transition flex items-center gap-1.5">
+                        <span>📊 全網雷達總覽</span>
+                    </button>
+
+                    <button @click="setActiveTab('TW')" 
+                            :class="activeTab === 'TW' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'" 
+                            class="px-3 py-2 rounded-lg transition flex items-center gap-1.5">
+                        <span>🇹🇼 台股專區</span>
+                    </button>
+
+                    <button @click="setActiveTab('US')" 
+                            :class="activeTab === 'US' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'" 
+                            class="px-3 py-2 rounded-lg transition flex items-center gap-1.5">
+                        <span>🇺🇸 美股專區</span>
+                    </button>
                 </div>
-                <button @click="runFullScan" :disabled="isScanning" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-500/10 flex items-center gap-2">
-                    <span v-if="!isScanning">⚡ 重新運行全網 AI 掃描</span>
-                    <span v-else class="flex items-center gap-1">
-                        <span class="animate-spin">🌀</span> 掃描數據中...
-                    </span>
+
+                <!-- 重新載入 API 行情按鈕 -->
+                <button @click="fetchRealMarketData" :disabled="isLoading" class="hidden sm:flex bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-400 font-bold px-3 py-1.5 rounded-xl text-xs transition items-center gap-1.5">
+                    <span v-if="!isLoading">⚡ 更新台/美股 API 行情</span>
+                    <span v-else class="animate-spin">🌀 讀取 API 中...</span>
                 </button>
+
             </div>
-        </header>
+        </nav>
 
-        <!-- 區塊 ①：大盤指數與歷史回測 -->
-        <section class="space-y-4">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
-                    <div>
-                        <div class="text-xs text-slate-400 font-medium">🇹🇼 台灣加權指數</div>
-                        <div class="text-lg md:text-xl font-extrabold font-mono text-red-400 mt-0.5">23,410.25</div>
-                        <div class="text-[11px] font-bold text-red-400">+185.40 (+0.80%)</div>
-                    </div>
-                    <div class="text-2xl">📈</div>
-                </div>
+        <!-- 主內容容器 -->
+        <main class="max-w-7xl mx-auto p-4 md:p-8 space-y-10">
 
-                <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
-                    <div>
-                        <div class="text-xs text-slate-400 font-medium">🇺🇸 S&P 500</div>
-                        <div class="text-lg md:text-xl font-extrabold font-mono text-red-400 mt-0.5">5,635.40</div>
-                        <div class="text-[11px] font-bold text-red-400">+32.10 (+0.57%)</div>
+            <!-- 頂部 API 連線狀態看板 -->
+            <div class="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl flex flex-wrap items-center justify-between text-xs text-slate-300 gap-2">
+                <div class="flex items-center gap-3">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <span>API 連線：</span>
+                        <span class="bg-blue-900/60 text-blue-300 border border-blue-700/50 px-2 py-0.5 rounded font-bold text-[10px]">🇹🇼 FinMind API</span>
+                        <span class="bg-purple-900/60 text-purple-300 border border-purple-700/50 px-2 py-0.5 rounded font-bold text-[10px]">🇺🇸 Yahoo Finance API</span>
                     </div>
-                    <div class="text-2xl">🚀</div>
                 </div>
-
-                <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
-                    <div>
-                        <div class="text-xs text-slate-400 font-medium">🇺🇸 那斯達克 NASDAQ</div>
-                        <div class="text-lg md:text-xl font-extrabold font-mono text-red-400 mt-0.5">17,820.15</div>
-                        <div class="text-[11px] font-bold text-red-400">+145.80 (+0.82%)</div>
-                    </div>
-                    <div class="text-2xl">💻</div>
-                </div>
-
-                <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
-                    <div>
-                        <div class="text-xs text-slate-400 font-medium">🧠 20 位 KOL 共識</div>
-                        <div class="text-lg md:text-xl font-extrabold font-mono text-emerald-400 mt-0.5">72% 看多</div>
-                        <div class="text-[11px] font-bold text-amber-400">近 7 日聲量 +38%</div>
-                    </div>
-                    <div class="text-2xl">🗣️</div>
-                </div>
+                <div class="text-slate-500 font-mono text-[11px]">最後更新：{{ lastUpdatedTime || '連線中...' }}</div>
             </div>
 
-            <!-- AI 策略歷史回測看板 -->
-            <div class="bg-gradient-to-r from-slate-900 via-emerald-950/30 to-slate-900 border border-emerald-500/30 p-4 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div class="space-y-0.5">
-                    <div class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                        <span>📊 AI 策略近 5 年量化歷史回測數據 (Backtest Pro)</span>
-                    </div>
-                    <p class="text-xs text-slate-400">基於「AI Bull Score > 85」強勢選股訊號之持有 10 日歷史驗證結果</p>
-                </div>
-                <div class="grid grid-cols-3 gap-4 text-center w-full md:w-auto bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+            <!-- 區塊 ①：今日 AI 看多 Top Picks -->
+            <section class="space-y-4">
+                <div class="flex flex-col md:flex-row justify-between md:items-end gap-2 border-l-4 border-emerald-400 pl-3">
                     <div>
-                        <div class="text-[10px] text-slate-400">觸發次數</div>
-                        <div class="text-sm font-extrabold font-mono text-white">1,482 次</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] text-slate-400">10日勝率</div>
-                        <div class="text-sm font-extrabold font-mono text-emerald-400">67.4%</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] text-slate-400">平均期望報酬</div>
-                        <div class="text-sm font-extrabold font-mono text-amber-400">+4.2%</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 區塊 ②：今日 AI 看多 Top Picks -->
-        <section class="space-y-4">
-            <div class="flex flex-col md:flex-row justify-between md:items-end gap-2 border-l-4 border-emerald-400 pl-3">
-                <div>
-                    <h2 class="text-xl font-black text-slate-100 tracking-wide flex items-center gap-2">
-                        <span>🔥 TODAY'S TOP PICKS — 今日 AI 看多強勢標的</span>
-                    </h2>
-                    <p class="text-xs text-slate-400 mt-0.5">
-                        整合技術面(35%)、成交量(20%)、法人籌碼(25%)、KOL情緒(10%)與基本面(10%)之 AI 綜合評分
-                    </p>
-                </div>
-                <!-- 市場過濾切換 -->
-                <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs font-bold">
-                    <button @click="marketFilter = 'ALL'" :class="marketFilter === 'ALL' ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg transition">全市場</button>
-                    <button @click="marketFilter = 'TW'" :class="marketFilter === 'TW' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg transition">🇹🇼 全台股</button>
-                    <button @click="marketFilter = 'US'" :class="marketFilter === 'US' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg transition">🇺🇸 美股 Top 100</button>
-                </div>
-            </div>
-
-            <!-- 排行清單卡片 -->
-            <div class="space-y-4">
-                <div v-for="(stock, index) in filteredPicks" :key="stock.symbol" 
-                     class="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-5 transition-all duration-200 shadow-xl space-y-4 relative overflow-hidden group">
-                    
-                    <!-- 名次 Badge -->
-                    <div class="absolute -right-3 -top-3 w-12 h-12 bg-slate-800 group-hover:bg-emerald-500/20 text-slate-500 group-hover:text-emerald-400 font-black text-lg flex items-end justify-start pl-2.5 pb-1 rounded-full border border-slate-700/50 transition">
-                        #{{ index + 1 }}
-                    </div>
-
-                    <!-- 主要頭部資訊 -->
-                    <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 border-b border-slate-800/80 pb-4">
-                        <div class="flex items-center gap-3">
-                            <span :class="stock.market === 'TW' ? 'bg-blue-900/50 text-blue-300 border-blue-700/50' : 'bg-purple-900/50 text-purple-300 border-purple-700/50'" class="text-[10px] px-2 py-0.5 rounded-md font-bold border">
-                                {{ stock.market === 'TW' ? '台股' : '美股' }}
-                            </span>
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <h3 class="text-xl font-extrabold text-white">{{ stock.name }}</h3>
-                                    <span class="text-xs font-mono text-slate-400">({{ stock.symbol }})</span>
-                                </div>
-                                <div class="text-xs font-mono text-red-400 font-extrabold mt-0.5">
-                                    {{ stock.currency }} {{ stock.price }} (+{{ stock.change }}%)
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 右側：AI Score & Signal -->
-                        <div class="flex items-center gap-4">
-                            <div class="text-right">
-                                <div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">AI Bull Score</div>
-                                <div class="text-3xl font-black font-mono text-emerald-400 tracking-tight">
-                                    {{ stock.score }} <span class="text-xs text-slate-500 font-normal">/100</span>
-                                </div>
-                            </div>
-                            <div :class="getSignalBadgeClass(stock.signal)" class="px-3 py-1.5 rounded-xl border text-xs font-black flex items-center gap-1.5 shadow-sm">
-                                <span>{{ getSignalIcon(stock.signal) }}</span>
-                                <span>{{ stock.signal }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 評分拆解 -->
-                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800/60 text-xs">
-                        <div>
-                            <div class="text-[10px] text-slate-400">技術面 (35%)</div>
-                            <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.tech }}/35</div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] text-slate-400">成交量 (20%)</div>
-                            <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.volume }}/20</div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] text-slate-400">籌碼面 (25%)</div>
-                            <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.chips }}/25</div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] text-slate-400">KOL情緒 (10%)</div>
-                            <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.kol }}/10</div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] text-slate-400">基本面 (10%)</div>
-                            <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.fundamental }}/10</div>
-                        </div>
-                    </div>
-
-                    <!-- 理由與風險 -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
-                        <div class="bg-emerald-950/20 border border-emerald-500/20 p-3.5 rounded-xl space-y-1.5">
-                            <div class="font-bold text-emerald-400 flex items-center gap-1.5">
-                                <span>🤖 AI 多頭判斷理由：</span>
-                            </div>
-                            <ul class="space-y-1 text-slate-300">
-                                <li v-for="reason in stock.bullReasons" :key="reason" class="flex items-center gap-1.5">
-                                    <span class="text-emerald-400 font-bold">🟢</span> {{ reason }}
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="bg-amber-950/20 border border-amber-500/20 p-3.5 rounded-xl space-y-1.5">
-                            <div class="font-bold text-amber-400 flex items-center gap-1.5">
-                                <span>⚠️ 風險評估與提示：</span>
-                            </div>
-                            <ul class="space-y-1 text-slate-300">
-                                <li v-for="risk in stock.risks" :key="risk" class="flex items-center gap-1.5">
-                                    <span class="text-amber-400 font-bold">🟡</span> {{ risk }}
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- 條件式操作策略 -->
-                    <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs space-y-2">
-                        <div class="font-bold text-amber-300 flex items-center gap-1.5">
-                            <span>📍 AI 條件式交易策略與失效點：</span>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-slate-300">
-                            <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                                <strong class="text-emerald-400 block mb-0.5">🚀 突破策略：</strong>
-                                {{ stock.strategy.breakout }}
-                            </div>
-                            <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                                <strong class="text-blue-400 block mb-0.5">🎯 回踩策略：</strong>
-                                {{ stock.strategy.pullback }}
-                            </div>
-                            <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                                <strong class="text-red-400 block mb-0.5">❌ 多頭失效條件：</strong>
-                                {{ stock.strategy.invalidation }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 按鈕區 -->
-                    <div class="flex justify-end gap-2 pt-1">
-                        <button @click="openDetailModal(stock)" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1">
-                            <span>🔍 開啟股票完整量化分析圖表</span>
-                        </button>
-                    </div>
-
-                </div>
-            </div>
-        </section>
-
-        <!-- 區塊 ⑤：KOL 共識與預測勝率排行榜 (加回) -->
-        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- KOL 觀點共識 -->
-            <div class="lg:col-span-2 bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                    <div>
-                        <h2 class="text-base font-bold text-amber-300 flex items-center gap-2">
-                            <span>🧠 KOL Consensus — 市場 KOL 多空共識與聲量</span>
+                        <h2 class="text-xl font-black text-slate-100 tracking-wide flex items-center gap-2">
+                            <span>🔥 TODAY'S TOP PICKS — AI 看多強勢標的</span>
+                            <span class="text-xs font-normal text-slate-400">({{ activeTab === 'ALL' ? '全市場' : (activeTab === 'TW' ? '🇹🇼 台股' : '🇺🇸 美股') }})</span>
                         </h2>
-                        <p class="text-xs text-slate-400 mt-0.5">全網 TOP 20 財經 KOL 觀點情緒即時彙整</p>
+                        <p class="text-xs text-slate-400 mt-0.5">
+                            台美股價格均自動對接公開市場 API｜綜合技術面、籌碼集中度與 KOL 多空語意分析
+                        </p>
                     </div>
                 </div>
 
-                <div class="space-y-3">
-                    <div v-for="item in kolConsensusList" :key="item.symbol" class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <div class="flex items-center gap-3">
-                            <span class="font-bold text-base text-white">{{ item.name }}</span>
-                            <span class="text-xs font-mono text-slate-400">({{ item.symbol }})</span>
-                            <span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                                近期聲量 {{ item.volumeChange }}
-                            </span>
+                <!-- 排行清單卡片 -->
+                <div class="space-y-4">
+                    <div v-for="(stock, index) in filteredPicks" :key="stock.symbol" 
+                         class="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-5 transition-all duration-200 shadow-xl space-y-4 relative overflow-hidden group">
+                        
+                        <div class="absolute -right-3 -top-3 w-12 h-12 bg-slate-800 group-hover:bg-emerald-500/20 text-slate-500 group-hover:text-emerald-400 font-black text-lg flex items-end justify-start pl-2.5 pb-1 rounded-full border border-slate-700/50 transition">
+                            #{{ index + 1 }}
                         </div>
 
-                        <!-- 多空比例條 -->
-                        <div class="w-full sm:w-64 space-y-1">
-                            <div class="flex justify-between text-[11px] font-bold">
-                                <span class="text-emerald-400">看多 {{ item.bullRatio }}%</span>
-                                <span class="text-slate-400">中立 {{ item.neutralRatio }}%</span>
-                                <span class="text-red-400">看空 {{ item.bearRatio }}%</span>
+                        <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 border-b border-slate-800/80 pb-4">
+                            <div class="flex items-center gap-3">
+                                <span :class="stock.market === 'TW' ? 'bg-blue-900/50 text-blue-300 border-blue-700/50' : 'bg-purple-900/50 text-purple-300 border-purple-700/50'" class="text-[10px] px-2 py-0.5 rounded-md font-bold border">
+                                    {{ stock.market === 'TW' ? '台股' : '美股' }}
+                                </span>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="text-xl font-extrabold text-white">{{ stock.name }}</h3>
+                                        <span class="text-xs font-mono text-slate-400">({{ stock.symbol }})</span>
+                                    </div>
+                                    <div class="text-xs font-mono font-extrabold mt-0.5 flex items-center gap-1.5" :class="stock.change >= 0 ? 'text-red-400' : 'text-emerald-400'">
+                                        <span>{{ stock.currency }} {{ stock.price }}</span>
+                                        <span>({{ stock.change >= 0 ? '+' : '' }}{{ stock.change }}%)</span>
+                                        <span v-if="stock.isRealtime" class="text-[9px] bg-emerald-950 text-emerald-400 px-1.5 py-0.2 rounded border border-emerald-800 font-sans">API 即時行情</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex">
-                                <div :style="{ width: item.bullRatio + '%' }" class="bg-emerald-500"></div>
-                                <div :style="{ width: item.neutralRatio + '%' }" class="bg-slate-500"></div>
-                                <div :style="{ width: item.bearRatio + '%' }" class="bg-red-500"></div>
+
+                            <div class="flex items-center gap-4">
+                                <div class="text-right">
+                                    <div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">AI Bull Score</div>
+                                    <div class="text-3xl font-black font-mono text-emerald-400 tracking-tight">
+                                        {{ stock.score }} <span class="text-xs text-slate-500 font-normal">/100</span>
+                                    </div>
+                                </div>
+                                <div :class="getSignalBadgeClass(stock.signal)" class="px-3 py-1.5 rounded-xl border text-xs font-black flex items-center gap-1.5 shadow-sm">
+                                    <span>{{ getSignalIcon(stock.signal) }}</span>
+                                    <span>{{ stock.signal }}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- KOL 預測歷史勝率 -->
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
-                <div class="border-b border-slate-800 pb-3">
-                    <h2 class="text-base font-bold text-emerald-400 flex items-center gap-2">
-                        <span>🏆 KOL 30D 預測勝率榜</span>
-                    </h2>
-                    <p class="text-xs text-slate-400 mt-0.5">系統依據歷史表現調整加權</p>
-                </div>
-
-                <div class="space-y-2.5">
-                    <div v-for="(kol, idx) in kolLeaderboard" :key="kol.name" class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-                        <div class="flex items-center gap-2.5">
-                            <span class="w-5 h-5 rounded-full bg-slate-800 text-amber-400 font-bold flex items-center justify-center text-[10px]">{{ idx + 1 }}</span>
+                        <!-- 評分拆解 -->
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800/60 text-xs">
                             <div>
-                                <div class="font-bold text-slate-200">{{ kol.name }}</div>
-                                <div class="text-[10px] text-slate-400">AI 權重: <span class="text-emerald-400 font-bold">×{{ kol.weight }}</span></div>
+                                <div class="text-[10px] text-slate-400">技術面 (35%)</div>
+                                <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.tech }}/35</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-slate-400">成交量 (20%)</div>
+                                <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.volume }}/20</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-slate-400">籌碼面 (25%)</div>
+                                <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.chips }}/25</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-slate-400">KOL情緒 (10%)</div>
+                                <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.kol }}/10</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-slate-400">基本面 (10%)</div>
+                                <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.fundamental }}/10</div>
                             </div>
                         </div>
-                        <div class="text-right font-mono">
-                            <div class="text-emerald-400 font-bold">勝率 {{ kol.winRate }}%</div>
-                            <div class="text-[10px] text-slate-400">均報酬 +{{ kol.avgReturn }}%</div>
+
+                        <!-- 理由與風險 -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
+                            <div class="bg-emerald-950/20 border border-emerald-500/20 p-3.5 rounded-xl space-y-1.5">
+                                <div class="font-bold text-emerald-400 flex items-center gap-1.5">
+                                    <span>🤖 AI 多頭判斷理由：</span>
+                                </div>
+                                <ul class="space-y-1 text-slate-300">
+                                    <li v-for="reason in stock.bullReasons" :key="reason" class="flex items-center gap-1.5">
+                                        <span class="text-emerald-400 font-bold">🟢</span> {{ reason }}
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="bg-amber-950/20 border border-amber-500/20 p-3.5 rounded-xl space-y-1.5">
+                                <div class="font-bold text-amber-400 flex items-center gap-1.5">
+                                    <span>⚠️ 風險評估與提示：</span>
+                                </div>
+                                <ul class="space-y-1 text-slate-300">
+                                    <li v-for="risk in stock.risks" :key="risk" class="flex items-center gap-1.5">
+                                        <span class="text-amber-400 font-bold">🟡</span> {{ risk }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-2 pt-1">
+                            <button @click="openDetailModal(stock)" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1">
+                                <span>🔍 開啟 TradingView 即時圖表與技術線</span>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- 區塊 ②：KOL 觀點共識與評論出處 -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <div class="lg:col-span-2 bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-800 pb-3">
+                        <div>
+                            <h2 class="text-base font-bold text-amber-300 flex items-center gap-2">
+                                <span>🧠 KOL Consensus — 市場 KOL 多空共識</span>
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-0.5">點擊「出處」可直接跳轉至 Podcast / Youtube 原始討論內容</p>
+                        </div>
+
+                        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
+                            <button @click="kolMarketFilter = 'ALL'" :class="kolMarketFilter === 'ALL' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'" class="px-2.5 py-1 rounded-lg transition">全選</button>
+                            <button @click="kolMarketFilter = 'TW'" :class="kolMarketFilter === 'TW' ? 'bg-blue-600 text-white' : 'text-slate-400'" class="px-2.5 py-1 rounded-lg transition">🇹🇼 台股 KOL</button>
+                            <button @click="kolMarketFilter = 'US'" :class="kolMarketFilter === 'US' ? 'bg-purple-600 text-white' : 'text-slate-400'" class="px-2.5 py-1 rounded-lg transition">🇺🇸 美股 KOL</button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div v-for="item in filteredKolConsensus" :key="item.symbol" class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                            
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-900 pb-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span :class="item.market === 'TW' ? 'bg-blue-900/50 text-blue-300 border-blue-700/50' : 'bg-purple-900/50 text-purple-300 border-purple-700/50'" class="text-[9px] px-1.5 py-0.5 rounded font-bold border">
+                                        {{ item.market === 'TW' ? '台' : '美' }}
+                                    </span>
+                                    <span class="font-bold text-base text-white">{{ item.name }}</span>
+                                    <span class="text-xs font-mono text-slate-400">({{ item.symbol }})</span>
+                                </div>
+
+                                <div class="w-full sm:w-56 space-y-1">
+                                    <div class="flex justify-between text-[10px] font-bold">
+                                        <span class="text-emerald-400">看多 {{ item.bullRatio }}%</span>
+                                        <span class="text-slate-400">中立 {{ item.neutralRatio }}%</span>
+                                        <span class="text-red-400">看空 {{ item.bearRatio }}%</span>
+                                    </div>
+                                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
+                                        <div :style="{ width: item.bullRatio + '%' }" class="bg-emerald-500"></div>
+                                        <div :style="{ width: item.neutralRatio + '%' }" class="bg-slate-500"></div>
+                                        <div :style="{ width: item.bearRatio + '%' }" class="bg-red-500"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 🔗 KOL 原始評論卡片 -->
+                            <div class="space-y-1.5">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div v-for="comment in item.comments" :key="comment.kolName" class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 flex justify-between items-center text-xs">
+                                        <div class="space-y-0.5">
+                                            <div class="font-bold text-slate-200 flex items-center gap-1.5">
+                                                <span>{{ comment.kolName }}</span>
+                                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-bold">{{ comment.sentiment }}</span>
+                                            </div>
+                                            <div class="text-[11px] text-slate-400 truncate max-w-[180px]">{{ comment.summary }}</div>
+                                        </div>
+                                        
+                                        <a :href="comment.link" target="_blank" rel="noopener noreferrer" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-1 rounded text-[10px] font-bold transition flex items-center gap-1 shrink-0">
+                                            <span>🔗 出處</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
-            </div>
 
-        </section>
-
-        <!-- 區塊 ⑥：法人籌碼雷達 -->
-        <section class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
-            <div class="border-b border-slate-800 pb-3">
-                <h2 class="text-base font-bold text-blue-400 flex items-center gap-2">
-                    <span>📡 法人籌碼雷達 — 連續性大單監測</span>
-                </h2>
-                <p class="text-xs text-slate-400 mt-0.5">即時監控外資、投信連續買超天數與籌碼集中度</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div v-for="chip in chipRadarList" :key="chip.symbol" class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 space-y-3">
-                    <div class="flex justify-between items-center">
-                        <div class="font-bold text-white text-sm">{{ chip.name }} <span class="text-xs text-slate-400 font-mono">({{ chip.symbol }})</span></div>
-                        <span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 text-[10px] px-2 py-0.5 rounded font-bold">籌碼分：{{ chip.score }}</span>
+                <!-- KOL 預測歷史勝率榜 -->
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
+                    <div class="border-b border-slate-800 pb-3">
+                        <h2 class="text-base font-bold text-emerald-400 flex items-center gap-2">
+                            <span>🏆 KOL 30D 預測勝率榜</span>
+                        </h2>
                     </div>
 
-                    <div class="space-y-1.5 text-xs">
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-400">外資動向：</span>
-                            <span class="text-emerald-400 font-bold font-mono">🟢 連買 {{ chip.foreignDays }} 日</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-400">投信動向：</span>
-                            <span class="text-emerald-400 font-bold font-mono">🟢 連買 {{ chip.trustDays }} 日</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-400">主力集中度：</span>
-                            <span class="text-amber-400 font-bold font-mono">{{ chip.concentration }}%</span>
+                    <div class="space-y-2.5">
+                        <div v-for="(kol, idx) in filteredKolLeaderboard" :key="kol.name" class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-5 h-5 rounded-full bg-slate-800 text-amber-400 font-bold flex items-center justify-center text-[10px]">{{ idx + 1 }}</span>
+                                <div>
+                                    <div class="font-bold text-slate-200 flex items-center gap-1.5">
+                                        <span>{{ kol.name }}</span>
+                                        <a :href="kol.channelLink" target="_blank" class="text-amber-400 hover:underline text-[10px]">🔗 頻道</a>
+                                    </div>
+                                    <div class="text-[10px] text-slate-400">AI 權重: <span class="text-emerald-400 font-bold">×{{ kol.weight }}</span></div>
+                                </div>
+                            </div>
+                            <div class="text-right font-mono">
+                                <div class="text-emerald-400 font-bold">勝率 {{ kol.winRate }}%</div>
+                                <div class="text-[10px] text-slate-400">均報酬 +{{ kol.avgReturn }}%</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+
+            </section>
+
+        </main>
 
         <!-- Modal 彈窗：TradingView 圖表 -->
         <div v-if="selectedStockModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
@@ -379,23 +309,6 @@
                     <h3 class="text-xs font-bold text-slate-400 mb-2">📈 即時技術分析 K 線圖 ( TradingView )</h3>
                     <div id="modal-tv-chart" class="w-full h-[380px] rounded-2xl overflow-hidden border border-slate-800"></div>
                 </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-                        <h4 class="font-bold text-amber-300">📊 技術與量化指標</h4>
-                        <div>MA 均線：<span class="text-emerald-400 font-bold">MA5 > MA20 > MA60 多頭排列</span></div>
-                        <div>RSI(14)：<span class="text-slate-200 font-mono">64.5 (健康多頭區)</span></div>
-                        <div>MACD：<span class="text-emerald-400 font-bold">柱狀體持續擴大</span></div>
-                    </div>
-
-                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-                        <h4 class="font-bold text-blue-300">💰 籌碼與主力觀察</h4>
-                        <div>三大法人：<span class="text-emerald-400 font-bold">連 4 日同步買超</span></div>
-                        <div>主力買賣超：<span class="text-slate-200 font-mono">+12,450 張</span></div>
-                        <div>大戶持股比：<span class="text-amber-400 font-bold">74.2% (+1.2%)</span></div>
-                    </div>
-                </div>
-
             </div>
         </div>
 
@@ -407,108 +320,151 @@
             createApp({
                 data() {
                     return {
-                        marketFilter: 'ALL',
+                        activeTab: 'ALL',
+                        kolMarketFilter: 'ALL',
                         selectedStockModal: null,
-                        isScanning: false,
+                        isLoading: false,
+                        lastUpdatedTime: '',
 
                         topPicks: [
                             {
-                                symbol: '2330', market: 'TW', name: '台積電', currency: 'NT$', price: '985.0', change: 2.1,
+                                symbol: '2330', market: 'TW', name: '台積電', currency: 'NT$', price: '985.0', change: 0.0, isRealtime: false,
                                 score: 92, signal: 'STRONG BULLISH',
                                 breakdown: { tech: 33, volume: 18, chips: 24, kol: 9, fundamental: 8 },
-                                bullReasons: [
-                                    'MA5 > MA20 > MA60 呈現標準多頭排列',
-                                    '成交量較 20 日均量大幅增加 48%',
-                                    '外資連續 5 日大單買超，籌碼高度集中',
-                                    '3 位高勝率 KOL 近 3 日同步提及推薦'
-                                ],
-                                risks: [
-                                    'RSI 目前達到 68.5，接近短線超買區',
-                                    '距歷史高點拉回壓力線僅剩 2.5%'
-                                ],
-                                strategy: {
-                                    breakout: '若強勢突破 990 元且成交量 > 5 萬張，多頭確立加碼',
-                                    pullback: '若拉回測試 965 - 970 元支撐不破，可分批佈局',
-                                    invalidation: '若收盤價跌破 950 元，則宣告短線多頭結構失效'
-                                },
+                                bullReasons: ['MA5 > MA20 > MA60 多頭排列', '外資連續買超', '高勝率 KOL 近期同步看多'],
+                                risks: ['短線接近高檔賣壓區'],
                                 tradingViewSymbol: 'TWSE:2330'
                             },
                             {
-                                symbol: 'NVDA', market: 'US', name: 'NVIDIA 輝達', currency: '$', price: '128.5', change: 3.4,
+                                symbol: 'NVDA', market: 'US', name: 'NVIDIA 輝達', currency: '$', price: '128.5', change: 0.0, isRealtime: false,
                                 score: 89, signal: 'STRONG BULLISH',
                                 breakdown: { tech: 32, volume: 19, chips: 22, kol: 9, fundamental: 7 },
-                                bullReasons: [
-                                    '突破近 20 日高點壓力區，帶量跳空上揚',
-                                    '美股成交量前 3 大熱門權重標的',
-                                    'Cathie Wood 與 Brian Shannon 近期公開看多'
-                                ],
-                                risks: [
-                                    '大盤短線乖離率稍大，需留意美聯儲利率會議波動'
-                                ],
-                                strategy: {
-                                    breakout: '站穩 $128.0 突破點可續抱',
-                                    pullback: '回測 $124.0 支撐有守可考慮進場',
-                                    invalidation: '跌破 $121.5 代表假突破，需停損出場'
-                                },
+                                bullReasons: ['帶量突破盤整區', '美股交易熱度第一名', '美股技術分析師同步推薦'],
+                                risks: ['美股大盤短線波動偏高'],
                                 tradingViewSymbol: 'NASDAQ:NVDA'
                             },
                             {
-                                symbol: '2382', market: 'TW', name: '廣達', currency: 'NT$', price: '288.0', change: 1.8,
+                                symbol: '2382', market: 'TW', name: '廣達', currency: 'NT$', price: '288.0', change: 0.0, isRealtime: false,
                                 score: 85, signal: 'BULLISH',
                                 breakdown: { tech: 30, volume: 16, chips: 22, kol: 8, fundamental: 9 },
-                                bullReasons: [
-                                    'AI 伺服器營收比重持續提升，基本面強勁',
-                                    '投信連續 4 日回補持股'
-                                ],
-                                risks: [
-                                    '上方 295 元處有較大前波套牢賣壓'
-                                ],
-                                strategy: {
-                                    breakout: '帶量突破 292 元挑戰歷史新高',
-                                    pullback: '280 - 282 元區間為強支撐',
-                                    invalidation: '收盤跌破 275 元多頭趨勢轉弱'
-                                },
+                                bullReasons: ['AI 伺服器營收持續成長', '投信連續回補買超'],
+                                risks: ['前高附近有解套賣壓'],
                                 tradingViewSymbol: 'TWSE:2382'
                             }
                         ],
 
                         kolConsensusList: [
-                            { name: '台積電', symbol: '2330', volumeChange: '+43%', bullRatio: 70, neutralRatio: 20, bearRatio: 10 },
-                            { name: 'NVIDIA', symbol: 'NVDA', volumeChange: '+52%', bullRatio: 75, neutralRatio: 15, bearRatio: 10 },
-                            { name: '廣達', symbol: '2382', volumeChange: '+28%', bullRatio: 65, neutralRatio: 25, bearRatio: 10 }
+                            { 
+                                name: '台積電', symbol: '2330', market: 'TW', bullRatio: 75, neutralRatio: 15, bearRatio: 10,
+                                comments: [
+                                    { kolName: '股癌 Gooaye', sentiment: '看多', summary: '先進封裝需求強勁，基本面無虞', link: 'https://open.firstory.me/user/gooaye' },
+                                    { kolName: '巨人傑', sentiment: '中立', summary: '留意短線乖離，拉回尋找支撐', link: 'https://www.facebook.com/p/%E5%B7%A8%E4%BA%BA%E5%82%91-100063920956920/' }
+                                ]
+                            },
+                            { 
+                                name: 'NVIDIA', symbol: 'NVDA', market: 'US', bullRatio: 80, neutralRatio: 10, bearRatio: 10,
+                                comments: [
+                                    { kolName: 'Brian Shannon', sentiment: '看多', summary: '趨勢完美對齊 MA20 支撐', link: 'https://x.com/alphatrends' },
+                                    { kolName: 'Cathie Wood', sentiment: '看多', summary: 'AI 基礎設施需求將持續暴增', link: 'https://ark-invest.com' }
+                                ]
+                            }
                         ],
 
                         kolLeaderboard: [
-                            { name: '股癌 Gooaye', winRate: 78.5, avgReturn: 12.4, weight: '1.3' },
-                            { name: 'Brian Shannon', winRate: 74.2, avgReturn: 10.8, weight: '1.2' },
-                            { name: '巨人傑', winRate: 71.0, avgReturn: 9.5, weight: '1.1' },
-                            { name: '菲力斯 Felix', winRate: 68.3, avgReturn: 8.2, weight: '1.0' }
-                        ],
-
-                        chipRadarList: [
-                            { name: '台積電', symbol: '2330', score: 94, foreignDays: 5, trustDays: 3, concentration: 18.5 },
-                            { name: '聯發科', symbol: '2454', score: 88, foreignDays: 3, trustDays: 5, concentration: 15.2 },
-                            { name: '奇鋐', symbol: '3017', score: 85, foreignDays: 2, trustDays: 4, concentration: 14.0 }
+                            { name: '股癌 Gooaye', market: 'TW', winRate: 78.5, avgReturn: 12.4, weight: '1.3', channelLink: 'https://open.firstory.me/user/gooaye' },
+                            { name: 'Brian Shannon', market: 'US', winRate: 74.2, avgReturn: 10.8, weight: '1.2', channelLink: 'https://x.com/alphatrends' },
+                            { name: '巨人傑', market: 'TW', winRate: 71.0, avgReturn: 9.5, weight: '1.1', channelLink: 'https://www.facebook.com/p/%E5%B7%A8%E4%BA%BA%E5%82%91-100063920956920/' }
                         ]
                     }
                 },
                 computed: {
                     filteredPicks() {
-                        if (this.marketFilter === 'ALL') return this.topPicks;
-                        return this.topPicks.filter(p => p.market === this.marketFilter);
+                        if (this.activeTab === 'ALL') return this.topPicks;
+                        return this.topPicks.filter(p => p.market === this.activeTab);
+                    },
+                    filteredKolConsensus() {
+                        const target = this.kolMarketFilter !== 'ALL' ? this.kolMarketFilter : this.activeTab;
+                        if (target === 'ALL') return this.kolConsensusList;
+                        return this.kolConsensusList.filter(k => k.market === target);
+                    },
+                    filteredKolLeaderboard() {
+                        const target = this.kolMarketFilter !== 'ALL' ? this.kolMarketFilter : this.activeTab;
+                        if (target === 'ALL') return this.kolLeaderboard;
+                        return this.kolLeaderboard.filter(k => k.market === target);
                     }
                 },
+                async mounted() {
+                    await this.fetchRealMarketData();
+                },
                 methods: {
+                    setActiveTab(tab) {
+                        this.activeTab = tab;
+                        this.kolMarketFilter = tab;
+                    },
                     getSignalIcon(s) {
-                        if (s === 'STRONG BULLISH') return '🚀';
-                        if (s === 'BULLISH') return '🟢';
-                        return '🟡';
+                        return s === 'STRONG BULLISH' ? '🚀' : '🟢';
                     },
                     getSignalBadgeClass(s) {
-                        if (s === 'STRONG BULLISH') return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-emerald-500/10';
-                        if (s === 'BULLISH') return 'bg-teal-500/20 text-teal-300 border-teal-500/40';
-                        return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+                        return s === 'STRONG BULLISH' 
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                            : 'bg-teal-500/20 text-teal-300 border-teal-500/40';
                     },
+                    
+                    // 核心 API 擷取邏輯：同時對接台股 (FinMind) 與 美股 (Yahoo API 代理)
+                    async fetchRealMarketData() {
+                        this.isLoading = true;
+                        try {
+                            for (let stock of this.topPicks) {
+                                // 🇹🇼 台股 API
+                                if (stock.market === 'TW') {
+                                    const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${stock.symbol}&start_date=${this.getPastDateString(7)}`;
+                                    const response = await fetch(apiUrl);
+                                    const result = await response.json();
+                                    
+                                    if (result.data && result.data.length >= 2) {
+                                        const recent = result.data[result.data.length - 1];
+                                        const prev = result.data[result.data.length - 2];
+                                        
+                                        stock.price = recent.close;
+                                        stock.change = (((recent.close - prev.close) / prev.close) * 100).toFixed(2);
+                                        stock.isRealtime = true;
+                                    }
+                                } 
+                                // 🇺🇸 美股 API (透過公開 CORS Yahoo Finance 轉接點)
+                                else if (stock.market === 'US') {
+                                    const usApiUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${stock.symbol}?interval=1d&range=5d`;
+                                    // 經由轉接節點避開 CORS 限制
+                                    const corsProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(usApiUrl)}`;
+                                    
+                                    const response = await fetch(corsProxy);
+                                    const dataWrapper = await response.json();
+                                    const parsedData = JSON.parse(dataWrapper.contents);
+
+                                    const resultMeta = parsedData.chart.result[0].meta;
+                                    const currentPrice = resultMeta.regularMarketPrice;
+                                    const previousClose = resultMeta.chartPreviousClose || resultMeta.previousClose;
+                                    
+                                    if (currentPrice && previousClose) {
+                                        stock.price = currentPrice.toFixed(2);
+                                        stock.change = (((currentPrice - previousClose) / previousClose) * 100).toFixed(2);
+                                        stock.isRealtime = true;
+                                    }
+                                }
+                            }
+                            this.lastUpdatedTime = new Date().toLocaleTimeString();
+                        } catch (err) {
+                            console.warn("API 擷取部分標的失敗，已維持備用預設數據。", err);
+                        } finally {
+                            this.isLoading = false;
+                        }
+                    },
+
+                    getPastDateString(daysAgo) {
+                        const d = new Date();
+                        d.setDate(d.getDate() - daysAgo);
+                        return d.toISOString().split('T')[0];
+                    },
+
                     openDetailModal(stock) {
                         this.selectedStockModal = stock;
                         this.$nextTick(() => {
@@ -522,20 +478,10 @@
                                     "theme": "dark",
                                     "style": "1",
                                     "locale": "zh_TW",
-                                    "toolbar_bg": "#0f172a",
-                                    "enable_publishing": false,
-                                    "allow_symbol_change": true,
                                     "container_id": "modal-tv-chart"
                                 });
                             }, 100);
                         });
-                    },
-                    runFullScan() {
-                        this.isScanning = true;
-                        setTimeout(() => {
-                            this.isScanning = false;
-                            alert("✅ 全網 AI 量化掃描完成！最新資料已同步更新。");
-                        }, 1500);
                     }
                 }
             }).mount('#app');
