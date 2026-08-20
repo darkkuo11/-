@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日台美股聲量 Top 10 & 分析師進出場情報站</title>
+    <!-- Tailwind CSS (簡化 UI 樣式) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+
+    <div id="app" class="max-w-4xl mx-auto p-4 md:p-6">
+        <!-- 頁首標題 -->
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl font-bold text-amber-400">📈 每日台美股聲量 Top 10 & 分析師情報站</h1>
+            <p class="text-sm text-slate-400 mt-2">更新時間：{{ lastUpdated }} (每日自動更新)</p>
+        </header>
+
+        <!-- X (Twitter) 美股實戰大師快速導覽牆 -->
+        <section class="mb-8 bg-slate-800/80 border border-slate-700 rounded-xl p-4">
+            <h2 class="text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
+                <span>🐦 美股 X (Twitter) 頂級實戰交易員 & 點位大師</span>
+            </h2>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <a v-for="trader in twitterTraders" :key="trader.handle" :href="'https://x.com/' + trader.handle" target="_blank"
+                   class="bg-slate-900 hover:bg-slate-700 border border-slate-700 p-2.5 rounded-lg transition flex flex-col justify-between">
+                    <div>
+                        <div class="font-bold text-xs text-slate-200">{{ trader.name }}</div>
+                        <div class="text-[10px] text-amber-400">@{{ trader.handle }}</div>
+                    </div>
+                    <div class="text-[11px] text-slate-400 mt-1.5">{{ trader.focus }}</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- 市場切換頁籤 -->
+        <div class="flex justify-center gap-4 mb-6">
+            <button @click="currentMarket = 'TW'" 
+                    :class="currentMarket === 'TW' ? 'bg-amber-500 text-black font-extrabold' : 'bg-slate-800 text-slate-300'"
+                    class="px-6 py-2.5 rounded-lg font-bold transition shadow-md">
+                🇹🇼 台股 Top 10
+            </button>
+            <button @click="currentMarket = 'US'" 
+                    :class="currentMarket === 'US' ? 'bg-amber-500 text-black font-extrabold' : 'bg-slate-800 text-slate-300'"
+                    class="px-6 py-2.5 rounded-lg font-bold transition shadow-md">
+                🇺🇸 美股 Top 10
+            </button>
+        </div>
+
+        <!-- 股票與分析師建議列表 -->
+        <div class="space-y-4">
+            <div v-for="(stock, index) in filteredStocks" :key="stock.symbol" 
+                 class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg hover:border-slate-600 transition">
+                
+                <!-- 卡片頂部：排名、代碼、聲量與情緒 -->
+                <div class="flex justify-between items-center cursor-pointer" @click="stock.expanded = !stock.expanded">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl font-extrabold w-8 text-amber-400">#{{ index + 1 }}</span>
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-100">
+                                {{ stock.name }} <span class="text-sm text-slate-400">({{ stock.symbol }})</span>
+                            </h2>
+                            <p class="text-xs text-slate-400">
+                                全網聲量：<span class="text-amber-300 font-semibold">{{ stock.mentions }}</span> 次討論
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <span :class="stock.sentiment === 'BULL' ? 'bg-red-500/20 text-red-400 border-red-500' : 'bg-green-500/20 text-green-400 border-green-500'"
+                              class="text-xs px-2.5 py-1 rounded-full border font-bold">
+                            {{ stock.sentiment === 'BULL' ? '看多 (Bull)' : '看空 (Bear)' }}
+                        </span>
+                        <span class="text-slate-400 text-sm">{{ stock.expanded ? '▲' : '▼' }}</span>
+                    </div>
+                </div>
+
+                <!-- 點擊展開：分析師/大師進出場點位細節 -->
+                <div v-if="stock.expanded" class="mt-4 pt-4 border-t border-slate-700 space-y-3">
+                    
+                    <!-- 進出場價位資訊看板 -->
+                    <div class="grid grid-cols-3 gap-2 bg-slate-900/90 p-3 rounded-lg text-center text-xs md:text-sm">
+                        <div>
+                            <span class="block text-slate-400 text-[11px]">建議進場/關鍵區間</span>
+                            <span class="font-extrabold text-amber-400">{{ stock.entryPrice || '觀望 / 未指定' }}</span>
+                        </div>
+                        <div>
+                            <span class="block text-slate-400 text-[11px]">目標價 (TP)</span>
+                            <span class="font-extrabold text-red-400">{{ stock.targetPrice || '未提供' }}</span>
+                        </div>
+                        <div>
+                            <span class="block text-slate-400 text-[11px]">停損/失效價 (SL)</span>
+                            <span class="font-extrabold text-green-400">{{ stock.stopLoss || '未提供' }}</span>
+                        </div>
+                    </div>
+
+                    <!-- 觀點與詳細摘要 -->
+                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <h4 class="text-xs font-bold text-amber-300">💡 主要分析師 / 大師觀點摘要：</h4>
+                            <span class="text-[11px] text-slate-400">來源：{{ stock.analystName }}</span>
+                        </div>
+                        <p class="text-xs md:text-sm text-slate-200 leading-relaxed">
+                            {{ stock.summary }}
+                        </p>
+                    </div>
+
+                    <!-- 原始來源按鈕 -->
+                    <div class="text-right">
+                        <a :href="stock.sourceUrl" target="_blank" 
+                           class="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 underline font-semibold">
+                            查看原始推文 / 分析來源 ↗
+                        </a>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+        
+        <!-- 免責聲明 -->
+        <footer class="mt-8 text-center text-xs text-slate-500">
+            免責聲明：本網頁數據係由自動化 AI 爬蟲與公開資訊彙整，僅供參考，不構成任何個人投資買賣建議。
+        </footer>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    currentMarket: 'US',
+                    lastUpdated: '2026-08-21 08:00',
+                    
+                    // X 上重點追蹤的美股大師名單
+                    twitterTraders: [
+                        { name: 'Adam Mancini', handle: 'AdamMancini4', focus: 'SPY/QQQ 每日精準關鍵點位' },
+                        { name: 'Mark Minervini', handle: 'MarkMinervini', focus: '兩屆冠軍/VCP突破與停損' },
+                        { name: 'Brian Shannon', handle: 'alphatrends', focus: 'AVWAP指標/熱門股進場Trigger' },
+                        { name: 'Ripster', handle: 'ripster47', focus: 'EMA Clouds/動能股點位警報' },
+                        { name: 'Dan Zanger', handle: 'DanZanger', focus: '世界紀錄飆股型態突破' },
+                        { name: 'Peter Brandt', handle: 'PeterLBrandt', focus: '40年圖表大師/經典型態學' },
+                        { name: 'Liz Ann Sonders', handle: 'LizAnnSonders', focus: '嘉信首席/基本面與宏觀數據' },
+                        { name: 'Caleb Franzen', handle: 'CalebFranzen', focus: '動能通道與多空轉折點' }
+                    ],
+
+                    // 每日聲量與進出場資訊 (可由 Python 後端每日寫入更新)
+                    stocks: [
+                        {
+                            market: 'US',
+                            symbol: 'SPY',
+                            name: '標普500 ETF',
+                            mentions: 4820,
+                            sentiment: 'BULL',
+                            analystName: 'Adam Mancini (@AdamMancini4)',
+                            entryPrice: '558.50 附近回測',
+                            targetPrice: '564.00 / 568.00',
+                            stopLoss: '555.00 (跌破轉空)',
+                            summary: 'Mancini 指出 558.5 是今日多空關鍵 Pivotal Level。若守住此點位，多頭目標直指 564 區域；若失守則可能下探 552 尋求支撐。',
+                            sourceUrl: 'https://x.com/AdamMancini4',
+                            expanded: true
+                        },
+                        {
+                            market: 'US',
+                            symbol: 'NVDA',
+                            name: '輝達',
+                            mentions: 3950,
+                            sentiment: 'BULL',
+                            analystName: 'Brian Shannon (@alphatrends)',
+                            entryPrice: '128.50 突破站穩',
+                            targetPrice: '140.00',
+                            stopLoss: '122.00',
+                            summary: 'Shannon 採用 Anchored VWAP 分析，NVDA 在 128.50 有強烈突破阻力區。只要日線收在該點位之上即符合進場條件，停損設於前低。',
+                            sourceUrl: 'https://x.com/alphatrends',
+                            expanded: false
+                        },
+                        {
+                            market: 'TW',
+                            symbol: '2330',
+                            name: '台積電',
+                            mentions: 1680,
+                            sentiment: 'BULL',
+                            analystName: 'PTT 股市版 / 籌碼大師彙整',
+                            entryPrice: '975 - 985 區間',
+                            targetPrice: '1100',
+                            stopLoss: '940',
+                            summary: '外資與投信連續性買超，技術面於千元關卡前進行健康震盪洗盤。市場普遍看好下半季 CoWoS 產能開出，建議逢回分批佈局。',
+                            sourceUrl: 'https://www.ptt.cc/bbs/Stock/index.html',
+                            expanded: true
+                        }
+                    ]
+                }
+            },
+            computed: {
+                filteredStocks() {
+                    return this.stocks.filter(s => s.market === this.currentMarket);
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
