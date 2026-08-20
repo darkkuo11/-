@@ -75,7 +75,103 @@
                 <div class="text-slate-500 font-mono text-[11px]">最後更新：{{ lastUpdatedTime || '初始化中...' }}</div>
             </div>
 
-            <!-- 區塊 ①：今日 AI 看多 Top Picks -->
+            <!-- 區塊 ①：KOL 觀點共識與預測榜（移至最上方） -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <div class="lg:col-span-2 bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-800 pb-3">
+                        <div>
+                            <h2 class="text-base font-bold text-amber-300 flex items-center gap-2">
+                                <span>🧠 KOL Consensus — 市場多位 KOL 共識指標</span>
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-0.5">點擊「出處」可直接跳轉至各 KOL 官方頻道與社群專頁</p>
+                        </div>
+
+                        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
+                            <button @click="kolMarketFilter = 'ALL'" :class="kolMarketFilter === 'ALL' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'" class="px-2.5 py-1 rounded-lg transition">全選</button>
+                            <button @click="kolMarketFilter = 'TW'" :class="kolMarketFilter === 'TW' ? 'bg-blue-600 text-white' : 'text-slate-400'" class="px-2.5 py-1 rounded-lg transition">🇹🇼 台股</button>
+                            <button @click="kolMarketFilter = 'US'" :class="kolMarketFilter === 'US' ? 'bg-purple-600 text-white' : 'text-slate-400'" class="px-2.5 py-1 rounded-lg transition">🇺🇸 美股</button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div v-for="item in filteredKolConsensus" :key="item.symbol" class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                            
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-900 pb-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span :class="item.market === 'TW' ? 'bg-blue-900/50 text-blue-300 border-blue-700/50' : 'bg-purple-900/50 text-purple-300 border-purple-700/50'" class="text-[9px] px-1.5 py-0.5 rounded font-bold border">
+                                        {{ item.market === 'TW' ? '台' : '美' }}
+                                    </span>
+                                    <span class="font-bold text-base text-white">{{ item.name }}</span>
+                                    <span class="text-xs font-mono text-slate-400">({{ item.symbol }})</span>
+                                </div>
+
+                                <div class="w-full sm:w-56 space-y-1">
+                                    <div class="flex justify-between text-[10px] font-bold">
+                                        <span class="text-emerald-400">看多 {{ item.bullRatio }}%</span>
+                                        <span class="text-slate-400">中立 {{ item.neutralRatio }}%</span>
+                                        <span class="text-red-400">看空 {{ item.bearRatio }}%</span>
+                                    </div>
+                                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
+                                        <div :style="{ width: item.bullRatio + '%' }" class="bg-emerald-500"></div>
+                                        <div :style="{ width: item.neutralRatio + '%' }" class="bg-slate-500"></div>
+                                        <div :style="{ width: item.bearRatio + '%' }" class="bg-red-500"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 🔗 KOL 原始評論卡片 (包含正確網址) -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div v-for="comment in item.comments" :key="comment.kolName" class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800/80 flex justify-between items-center text-xs hover:border-slate-700 transition">
+                                    <div class="space-y-0.5 overflow-hidden pr-2">
+                                        <div class="font-bold text-slate-200 flex items-center gap-1.5">
+                                            <span>{{ comment.kolName }}</span>
+                                            <span :class="getSentimentClass(comment.sentiment)" class="text-[9px] px-1.5 py-0.2 rounded font-bold">{{ comment.sentiment }}</span>
+                                        </div>
+                                        <div class="text-[11px] text-slate-400 truncate">{{ comment.summary }}</div>
+                                    </div>
+                                    
+                                    <a :href="comment.link" target="_blank" rel="noopener noreferrer" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-1 rounded text-[10px] font-bold transition flex items-center gap-1 shrink-0">
+                                        <span>🔗 出處</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KOL 預測歷史勝率榜 -->
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
+                    <div class="border-b border-slate-800 pb-3">
+                        <h2 class="text-base font-bold text-emerald-400 flex items-center gap-2">
+                            <span>🏆 KOL 30D 預測勝率榜</span>
+                        </h2>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        <div v-for="(kol, idx) in filteredKolLeaderboard" :key="kol.name" class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs hover:border-slate-700 transition">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-5 h-5 rounded-full bg-slate-800 text-amber-400 font-bold flex items-center justify-center text-[10px] shrink-0">{{ idx + 1 }}</span>
+                                <div>
+                                    <div class="font-bold text-slate-200 flex items-center gap-1.5">
+                                        <span>{{ kol.name }}</span>
+                                        <span :class="kol.market === 'TW' ? 'text-blue-400 border-blue-500/30' : 'text-purple-400 border-purple-500/30'" class="text-[9px] border px-1 rounded">{{ kol.market }}</span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-400">AI 權重: <span class="text-emerald-400 font-bold">×{{ kol.weight }}</span></div>
+                                </div>
+                            </div>
+                            <div class="text-right font-mono shrink-0">
+                                <div class="text-emerald-400 font-bold">勝率 {{ kol.winRate }}%</div>
+                                <a :href="kol.channelLink" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:underline text-[10px]">🔗 頻道出處</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- 區塊 ②：今日 AI 看多 Top Picks（移至下方） -->
             <section class="space-y-4">
                 <div class="flex flex-col md:flex-row justify-between md:items-end gap-2 border-l-4 border-emerald-400 pl-3">
                     <div>
@@ -190,102 +286,6 @@
                 </div>
             </section>
 
-            <!-- 區塊 ②：KOL 觀點共識與評論出處 -->
-            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <div class="lg:col-span-2 bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
-                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-800 pb-3">
-                        <div>
-                            <h2 class="text-base font-bold text-amber-300 flex items-center gap-2">
-                                <span>🧠 KOL Consensus — 市場多位 KOL 共識指標</span>
-                            </h2>
-                            <p class="text-xs text-slate-400 mt-0.5">點擊「出處」可直接跳轉至各 KOL 官方頻道與社群專頁</p>
-                        </div>
-
-                        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
-                            <button @click="kolMarketFilter = 'ALL'" :class="kolMarketFilter === 'ALL' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'" class="px-2.5 py-1 rounded-lg transition">全選</button>
-                            <button @click="kolMarketFilter = 'TW'" :class="kolMarketFilter === 'TW' ? 'bg-blue-600 text-white' : 'text-slate-400'" class="px-2.5 py-1 rounded-lg transition">🇹🇼 台股</button>
-                            <button @click="kolMarketFilter = 'US'" :class="kolMarketFilter === 'US' ? 'bg-purple-600 text-white' : 'text-slate-400'" class="px-2.5 py-1 rounded-lg transition">🇺🇸 美股</button>
-                        </div>
-                    </div>
-
-                    <div class="space-y-4">
-                        <div v-for="item in filteredKolConsensus" :key="item.symbol" class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                            
-                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-900 pb-2">
-                                <div class="flex items-center gap-2.5">
-                                    <span :class="item.market === 'TW' ? 'bg-blue-900/50 text-blue-300 border-blue-700/50' : 'bg-purple-900/50 text-purple-300 border-purple-700/50'" class="text-[9px] px-1.5 py-0.5 rounded font-bold border">
-                                        {{ item.market === 'TW' ? '台' : '美' }}
-                                    </span>
-                                    <span class="font-bold text-base text-white">{{ item.name }}</span>
-                                    <span class="text-xs font-mono text-slate-400">({{ item.symbol }})</span>
-                                </div>
-
-                                <div class="w-full sm:w-56 space-y-1">
-                                    <div class="flex justify-between text-[10px] font-bold">
-                                        <span class="text-emerald-400">看多 {{ item.bullRatio }}%</span>
-                                        <span class="text-slate-400">中立 {{ item.neutralRatio }}%</span>
-                                        <span class="text-red-400">看空 {{ item.bearRatio }}%</span>
-                                    </div>
-                                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
-                                        <div :style="{ width: item.bullRatio + '%' }" class="bg-emerald-500"></div>
-                                        <div :style="{ width: item.neutralRatio + '%' }" class="bg-slate-500"></div>
-                                        <div :style="{ width: item.bearRatio + '%' }" class="bg-red-500"></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 🔗 KOL 原始評論卡片 (包含修復後的正確網址) -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <div v-for="comment in item.comments" :key="comment.kolName" class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800/80 flex justify-between items-center text-xs hover:border-slate-700 transition">
-                                    <div class="space-y-0.5 overflow-hidden pr-2">
-                                        <div class="font-bold text-slate-200 flex items-center gap-1.5">
-                                            <span>{{ comment.kolName }}</span>
-                                            <span :class="getSentimentClass(comment.sentiment)" class="text-[9px] px-1.5 py-0.2 rounded font-bold">{{ comment.sentiment }}</span>
-                                        </div>
-                                        <div class="text-[11px] text-slate-400 truncate">{{ comment.summary }}</div>
-                                    </div>
-                                    
-                                    <a :href="comment.link" target="_blank" rel="noopener noreferrer" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-1 rounded text-[10px] font-bold transition flex items-center gap-1 shrink-0">
-                                        <span>🔗 出處</span>
-                                    </a>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <!-- KOL 預測歷史勝率榜 (包含修復後的正確網址) -->
-                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
-                    <div class="border-b border-slate-800 pb-3">
-                        <h2 class="text-base font-bold text-emerald-400 flex items-center gap-2">
-                            <span>🏆 KOL 30D 預測勝率榜</span>
-                        </h2>
-                    </div>
-
-                    <div class="space-y-2.5">
-                        <div v-for="(kol, idx) in filteredKolLeaderboard" :key="kol.name" class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs hover:border-slate-700 transition">
-                            <div class="flex items-center gap-2.5">
-                                <span class="w-5 h-5 rounded-full bg-slate-800 text-amber-400 font-bold flex items-center justify-center text-[10px] shrink-0">{{ idx + 1 }}</span>
-                                <div>
-                                    <div class="font-bold text-slate-200 flex items-center gap-1.5">
-                                        <span>{{ kol.name }}</span>
-                                        <span :class="kol.market === 'TW' ? 'text-blue-400 border-blue-500/30' : 'text-purple-400 border-purple-500/30'" class="text-[9px] border px-1 rounded">{{ kol.market }}</span>
-                                    </div>
-                                    <div class="text-[10px] text-slate-400">AI 權重: <span class="text-emerald-400 font-bold">×{{ kol.weight }}</span></div>
-                                </div>
-                            </div>
-                            <div class="text-right font-mono shrink-0">
-                                <div class="text-emerald-400 font-bold">勝率 {{ kol.winRate }}%</div>
-                                <a :href="kol.channelLink" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:underline text-[10px]">🔗 頻道出處</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </section>
-
         </main>
 
         <!-- Modal 彈窗：TradingView 圖表 -->
@@ -352,7 +352,6 @@
                             }
                         ],
 
-                        // 已修正完畢之 KOL 討論共識與精準連結
                         kolConsensusList: [
                             { 
                                 name: '台積電', symbol: '2330', market: 'TW', bullRatio: 82, neutralRatio: 12, bearRatio: 6,
@@ -374,7 +373,6 @@
                             }
                         ],
 
-                        // 已修正完畢之 KOL 排行榜連結
                         kolLeaderboard: [
                             { name: 'Gooaye 股癌', market: 'TW', winRate: 78.5, weight: '1.3', channelLink: 'https://linktr.ee/gooaye' },
                             { name: 'Dan Ives (Wedbush)', market: 'US', winRate: 76.8, weight: '1.3', channelLink: 'https://x.com/DivesTech' },
@@ -425,7 +423,6 @@
                         return 'bg-slate-500/20 text-slate-300 border border-slate-500/30';
                     },
 
-                    // 5秒自動逾時機制，避免無限制轉圈
                     async fetchWithTimeout(resource, options = {}, timeout = 5000) {
                         const controller = new AbortController();
                         const id = setTimeout(() => controller.abort(), timeout);
@@ -442,14 +439,12 @@
                         }
                     },
 
-                    // 改良版 API 擷取 (多線程 + 防卡死)
                     async fetchRealMarketData() {
                         this.isLoading = true;
 
                         const tasks = this.topPicks.map(async (stock) => {
                             try {
                                 if (stock.market === 'TW') {
-                                    // 🇹🇼 台股 API (FinMind)
                                     const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${stock.symbol}&start_date=${this.getPastDateString(7)}`;
                                     const response = await this.fetchWithTimeout(apiUrl, {}, 4000);
                                     const result = await response.json();
@@ -462,7 +457,6 @@
                                         stock.isRealtime = true;
                                     }
                                 } else if (stock.market === 'US') {
-                                    // 🇺🇸 美股 API (Stooq CSV/JSON 代理)
                                     const usApiUrl = `https://stooq.com/q/l/?s=${stock.symbol.toLowerCase()}.us&f=sdoclv&h&e=json`;
                                     const response = await this.fetchWithTimeout(usApiUrl, {}, 4000);
                                     const result = await response.json();
@@ -485,7 +479,6 @@
                             await Promise.all(tasks);
                             this.lastUpdatedTime = new Date().toLocaleTimeString();
                         } finally {
-                            // 強制結束載入狀態
                             this.isLoading = false;
                         }
                     },
