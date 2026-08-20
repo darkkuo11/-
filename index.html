@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Stock Radar - 美股 KOL 精準名單 & 川普概念股版</title>
+    <title>AI Stock Radar - 台美股 KOL 追蹤與標的拆解版</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Vue.js 3 -->
@@ -75,94 +75,79 @@
                 <div class="text-slate-500 font-mono text-[11px]">最後更新：{{ lastUpdatedTime || '初始化中...' }}</div>
             </div>
 
-            <!-- 區塊 ①：KOL 觀點共識與預測榜（最上方） -->
-            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 區塊 ①：KOL 提及股票與多空看法（分開台股 / 美股） -->
+            <section class="space-y-8">
                 
-                <div class="lg:col-span-2 bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
-                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-800 pb-3">
-                        <div>
-                            <h2 class="text-base font-bold text-amber-300 flex items-center gap-2">
-                                <span>🧠 KOL Consensus — 市場多位 KOL 共識指標</span>
-                            </h2>
-                            <p class="text-xs text-slate-400 mt-0.5">匯集美股權威 X 帳號與 Truth Social 川普熱議貼文</p>
-                        </div>
-
-                        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
-                            <button @click="kolMarketFilter = 'ALL'" :class="kolMarketFilter === 'ALL' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'" class="px-2.5 py-1 rounded-lg transition">全選</button>
-                            <button @click="kolMarketFilter = 'TW'" :class="kolMarketFilter === 'TW' ? 'bg-blue-600 text-white' : 'text-slate-400'" class="px-2.5 py-1 rounded-lg transition">🇹🇼 台股</button>
-                            <button @click="kolMarketFilter = 'US'" :class="kolMarketFilter === 'US' ? 'bg-purple-600 text-white' : 'text-slate-400'" class="px-2.5 py-1 rounded-lg transition">🇺🇸 美股</button>
-                        </div>
+                <!-- 🇹🇼 台股 KOL 專區 -->
+                <div v-if="activeTab === 'ALL' || activeTab === 'TW'" class="space-y-4">
+                    <div class="flex items-center gap-2 border-l-4 border-blue-500 pl-3">
+                        <h2 class="text-lg font-black text-blue-400">🇹🇼 台股 KOL 追蹤帳號、提及個股與多空立場</h2>
+                        <span class="text-xs text-slate-400">({{ twKolList.length }} 位權威帳號)</span>
                     </div>
 
-                    <div class="space-y-4">
-                        <div v-for="item in filteredKolConsensus" :key="item.symbol" class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                            
-                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-900 pb-2">
-                                <div class="flex items-center gap-2.5">
-                                    <span :class="item.market === 'TW' ? 'bg-blue-900/50 text-blue-300 border-blue-700/50' : 'bg-purple-900/50 text-purple-300 border-purple-700/50'" class="text-[9px] px-1.5 py-0.5 rounded font-bold border">
-                                        {{ item.market === 'TW' ? '台' : '美' }}
-                                    </span>
-                                    <span class="font-bold text-base text-white">{{ item.name }}</span>
-                                    <span class="text-xs font-mono text-slate-400">({{ item.symbol }})</span>
-                                </div>
-
-                                <div class="w-full sm:w-56 space-y-1">
-                                    <div class="flex justify-between text-[10px] font-bold">
-                                        <span class="text-emerald-400">看多 {{ item.bullRatio }}%</span>
-                                        <span class="text-slate-400">中立 {{ item.neutralRatio }}%</span>
-                                        <span class="text-red-400">看空 {{ item.bearRatio }}%</span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div v-for="kol in twKolList" :key="kol.name" class="bg-slate-900 border border-slate-800 hover:border-blue-500/50 p-4 rounded-2xl space-y-3 transition">
+                            <div class="flex justify-between items-start border-b border-slate-800 pb-2.5">
+                                <div>
+                                    <div class="font-extrabold text-white text-base flex items-center gap-1.5">
+                                        <span>{{ kol.name }}</span>
                                     </div>
-                                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
-                                        <div :style="{ width: item.bullRatio + '%' }" class="bg-emerald-500"></div>
-                                        <div :style="{ width: item.neutralRatio + '%' }" class="bg-slate-500"></div>
-                                        <div :style="{ width: item.bearRatio + '%' }" class="bg-red-500"></div>
+                                    <div class="text-[11px] text-slate-400 mt-0.5">{{ kol.memo }}</div>
+                                </div>
+                                <a :href="kol.link" target="_blank" rel="noopener noreferrer" class="bg-slate-800 hover:bg-blue-600/30 text-blue-300 border border-slate-700 hover:border-blue-500 px-2.5 py-1 rounded-lg text-[10px] font-bold transition">
+                                    🔗 帳號
+                                </a>
+                            </div>
+
+                            <!-- 提及個股標籤與立場 -->
+                            <div class="space-y-2">
+                                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">提及個股與多空態度：</div>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <div v-for="stock in kol.mentionedStocks" :key="stock.symbol" class="bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2 text-xs">
+                                        <span class="font-bold text-slate-200">{{ stock.symbol }}</span>
+                                        <span :class="getSentimentBadgeClass(stock.sentiment)" class="text-[9px] px-1.5 py-0.2 rounded font-bold">
+                                            {{ stock.sentiment }}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- 🔗 KOL 原始評論卡片 (更新為圖片內 KOL 與 Truth Social) -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <div v-for="comment in item.comments" :key="comment.kolName" class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800/80 flex justify-between items-center text-xs hover:border-slate-700 transition">
-                                    <div class="space-y-0.5 overflow-hidden pr-2">
-                                        <div class="font-bold text-slate-200 flex items-center gap-1.5">
-                                            <span>{{ comment.kolName }}</span>
-                                            <span :class="getSentimentClass(comment.sentiment)" class="text-[9px] px-1.5 py-0.2 rounded font-bold">{{ comment.sentiment }}</span>
-                                        </div>
-                                        <div class="text-[11px] text-slate-400 truncate">{{ comment.summary }}</div>
-                                    </div>
-                                    
-                                    <a :href="comment.link" target="_blank" rel="noopener noreferrer" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-1 rounded text-[10px] font-bold transition flex items-center gap-1 shrink-0">
-                                        <span>🔗 出處</span>
-                                    </a>
-                                </div>
-                            </div>
-
                         </div>
                     </div>
                 </div>
 
-                <!-- KOL 預測歷史勝率榜 (完全對應圖片帳號) -->
-                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
-                    <div class="border-b border-slate-800 pb-3">
-                        <h2 class="text-base font-bold text-emerald-400 flex items-center gap-2">
-                            <span>🏆 美股權威 KOL 追蹤清單</span>
-                        </h2>
+                <!-- 🇺🇸 美股 KOL 專區（包含圖片中所有帳號 + Truth Social 川普） -->
+                <div v-if="activeTab === 'ALL' || activeTab === 'US'" class="space-y-4">
+                    <div class="flex items-center gap-2 border-l-4 border-purple-500 pl-3">
+                        <h2 class="text-lg font-black text-purple-400">🇺🇸 美股 KOL 追蹤帳號、提及個股與多空立場</h2>
+                        <span class="text-xs text-slate-400">({{ usKolList.length }} 位權威帳號)</span>
                     </div>
 
-                    <div class="space-y-2.5">
-                        <div v-for="(kol, idx) in filteredKolLeaderboard" :key="kol.name" class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs hover:border-slate-700 transition">
-                            <div class="flex items-center gap-2.5">
-                                <span class="w-5 h-5 rounded-full bg-slate-800 text-amber-400 font-bold flex items-center justify-center text-[10px] shrink-0">{{ idx + 1 }}</span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div v-for="kol in usKolList" :key="kol.name" class="bg-slate-900 border border-slate-800 hover:border-purple-500/50 p-4 rounded-2xl space-y-3 transition">
+                            <div class="flex justify-between items-start border-b border-slate-800 pb-2.5">
                                 <div>
-                                    <div class="font-bold text-slate-200 flex items-center gap-1.5">
+                                    <div class="font-extrabold text-white text-base flex items-center gap-1.5">
                                         <span>{{ kol.name }}</span>
-                                        <span :class="kol.market === 'TW' ? 'text-blue-400 border-blue-500/30' : 'text-purple-400 border-purple-500/30'" class="text-[9px] border px-1 rounded">{{ kol.market }}</span>
+                                        <span v-if="kol.isTrump" class="bg-red-900/80 text-red-200 border border-red-500/50 text-[9px] px-1.5 py-0.2 rounded font-bold">Truth Social</span>
                                     </div>
-                                    <div class="text-[10px] text-slate-400">{{ kol.memo }}</div>
+                                    <div class="text-[11px] text-slate-400 mt-0.5">{{ kol.memo }}</div>
                                 </div>
+                                <a :href="kol.link" target="_blank" rel="noopener noreferrer" class="bg-slate-800 hover:bg-purple-600/30 text-purple-300 border border-slate-700 hover:border-purple-500 px-2.5 py-1 rounded-lg text-[10px] font-bold transition">
+                                    🔗 帳號
+                                </a>
                             </div>
-                            <div class="text-right font-mono shrink-0">
-                                <a :href="kol.channelLink" target="_blank" rel="noopener noreferrer" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-2 py-1 rounded text-[10px] border border-slate-700 font-bold">🔗 開啟 X</a>
+
+                            <!-- 提及個股標籤與立場 -->
+                            <div class="space-y-2">
+                                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">提及個股與多空態度：</div>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <div v-for="stock in kol.mentionedStocks" :key="stock.symbol" class="bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2 text-xs">
+                                        <span class="font-bold text-slate-200">{{ stock.symbol }}</span>
+                                        <span :class="getSentimentBadgeClass(stock.sentiment)" class="text-[9px] px-1.5 py-0.2 rounded font-bold">
+                                            {{ stock.sentiment }}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -178,9 +163,6 @@
                             <span>🔥 TODAY'S TOP PICKS — AI 看多強勢標的</span>
                             <span class="text-xs font-normal text-slate-400">({{ activeTab === 'ALL' ? '全市場' : (activeTab === 'TW' ? '🇹🇼 台股' : '🇺🇸 美股') }})</span>
                         </h2>
-                        <p class="text-xs text-slate-400 mt-0.5">
-                            新增 Truth Social 川普聲量股與美股權威 KOL 關注標的
-                        </p>
                     </div>
                 </div>
 
@@ -227,30 +209,6 @@
                             </div>
                         </div>
 
-                        <!-- 評分拆解 -->
-                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800/60 text-xs">
-                            <div>
-                                <div class="text-[10px] text-slate-400">技術面 (35%)</div>
-                                <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.tech }}/35</div>
-                            </div>
-                            <div>
-                                <div class="text-[10px] text-slate-400">成交量 (20%)</div>
-                                <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.volume }}/20</div>
-                            </div>
-                            <div>
-                                <div class="text-[10px] text-slate-400">籌碼面 (25%)</div>
-                                <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.chips }}/25</div>
-                            </div>
-                            <div>
-                                <div class="text-[10px] text-slate-400">KOL情緒 (10%)</div>
-                                <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.kol }}/10</div>
-                            </div>
-                            <div>
-                                <div class="text-[10px] text-slate-400">基本面 (10%)</div>
-                                <div class="font-bold text-emerald-400 font-mono">{{ stock.breakdown.fundamental }}/10</div>
-                            </div>
-                        </div>
-
                         <!-- 理由與風險 -->
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
                             <div class="bg-emerald-950/20 border border-emerald-500/20 p-3.5 rounded-xl space-y-1.5">
@@ -278,7 +236,7 @@
 
                         <div class="flex justify-end gap-2 pt-1">
                             <button @click="openDetailModal(stock)" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1">
-                                <span>🔍 開啟 TradingView 即時圖表與技術線</span>
+                                <span>🔍 開啟 TradingView 即時圖表</span>
                             </button>
                         </div>
 
@@ -320,83 +278,230 @@
                 data() {
                     return {
                         activeTab: 'ALL',
-                        kolMarketFilter: 'ALL',
                         selectedStockModal: null,
                         isLoading: false,
                         lastUpdatedTime: '',
+
+                        // 🇹🇼 台股 KOL 名單、連結、提到的股票與多空態度
+                        twKolList: [
+                            {
+                                name: 'Gooaye 股癌', memo: '知名財經 Podcast，著重產業面與基本面', link: 'https://linktr.ee/gooaye',
+                                mentionedStocks: [
+                                    { symbol: '2330 台積電', sentiment: '看多' },
+                                    { symbol: '2382 廣達', sentiment: '看多' },
+                                    { symbol: '2454 聯發科', sentiment: '中立' }
+                                ]
+                            },
+                            {
+                                name: 'XTrader貓姐美股交易', memo: '專注正股波段與技術走勢覆盤', link: 'https://x.com/maojietrading',
+                                mentionedStocks: [
+                                    { symbol: 'COIN', sentiment: '看多' },
+                                    { symbol: 'PLTR', sentiment: '看多' },
+                                    { symbol: 'MU', sentiment: '中立' }
+                                ]
+                            },
+                            {
+                                name: '加密大聰明 / 問月wmoon', memo: '聚焦科技股產業鏈與財報估值', link: 'https://x.com/0xxsmart',
+                                mentionedStocks: [
+                                    { symbol: '2330 台積電', sentiment: '看多' },
+                                    { symbol: 'NVDA', sentiment: '看多' },
+                                    { symbol: 'AVGO', sentiment: '看多' }
+                                ]
+                            }
+                        ],
+
+                        // 🇺🇸 美股 KOL 名單（完全對應圖片①與圖片② + 川普 Truth Social）
+                        usKolList: [
+                            {
+                                name: 'Donald J. Trump', memo: 'Truth Social 官方帳號聲量發布', link: 'https://truthsocial.com/@realDonaldTrump', isTrump: true,
+                                mentionedStocks: [
+                                    { symbol: 'DJT', sentiment: '看多' },
+                                    { symbol: 'NVDA', sentiment: '看多' },
+                                    { symbol: 'BA', sentiment: '看空' }
+                                ]
+                            },
+                            {
+                                name: 'Cathie Wood', memo: '投資公司 CEO，偏向經濟與顛覆性創新', link: 'https://x.com/CathieDWood',
+                                mentionedStocks: [
+                                    { symbol: 'TSLA', sentiment: '看多' },
+                                    { symbol: 'PLTR', sentiment: '看多' },
+                                    { symbol: 'COIN', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'The Kobeissi Letter', memo: '財經新聞、股市動態與宏觀報告', link: 'https://x.com/KobeissiLetter',
+                                mentionedStocks: [
+                                    { symbol: 'SPY', sentiment: '中立' },
+                                    { symbol: 'NVDA', sentiment: '看多' },
+                                    { symbol: 'AAPL', sentiment: '看空' }
+                                ]
+                            },
+                            {
+                                name: 'StockMKTNewz', memo: '股市即時新聞與極速消息', link: 'https://x.com/StockMKTNewz',
+                                mentionedStocks: [
+                                    { symbol: 'DJT', sentiment: '看多' },
+                                    { symbol: 'AMZN', sentiment: '看多' },
+                                    { symbol: 'META', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'Adam Mancini', memo: 'S&P 500 指數與期貨精準點位規劃', link: 'https://x.com/AdamMancini4',
+                                mentionedStocks: [
+                                    { symbol: 'SPX', sentiment: '看多' },
+                                    { symbol: 'NDX', sentiment: '看多' },
+                                    { symbol: 'NVDA', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'Peter Brandt', memo: '傳奇資深古典圖表派交易員', link: 'https://x.com/PeterLBrandt',
+                                mentionedStocks: [
+                                    { symbol: 'BTC', sentiment: '看多' },
+                                    { symbol: 'AAPL', sentiment: '看空' },
+                                    { symbol: 'GLD', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'Mohamed A. El-Erian', memo: '頂尖經濟學家與聯準會政策觀點', link: 'https://x.com/elerianm',
+                                mentionedStocks: [
+                                    { symbol: 'TLT', sentiment: '看空' },
+                                    { symbol: 'SPY', sentiment: '中立' }
+                                ]
+                            },
+                            {
+                                name: 'TrendSpider', memo: '圖表編輯與幽默技術分析', link: 'https://x.com/trendspider?lang=zh-Hant',
+                                mentionedStocks: [
+                                    { symbol: 'AMD', sentiment: '看多' },
+                                    { symbol: 'QQQ', sentiment: '中立' }
+                                ]
+                            },
+                            {
+                                name: 'Traderstewie', memo: '專欄投資策略與技術線圖圖解', link: 'https://x.com/traderstewie',
+                                mentionedStocks: [
+                                    { symbol: 'NFLX', sentiment: '看多' },
+                                    { symbol: 'MSFT', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'WOLF_Financial', memo: '聚集投資人 Podcast 與社群經營', link: 'https://x.com/WOLF_Financial',
+                                mentionedStocks: [
+                                    { symbol: 'PLTR', sentiment: '看多' },
+                                    { symbol: 'HOOD', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'QuiverQuant', memo: '國會議員與華爾街資訊透明化', link: 'https://x.com/QuiverQuant',
+                                mentionedStocks: [
+                                    { symbol: 'NOC', sentiment: '看多' },
+                                    { symbol: 'DJT', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'Barchart', memo: '即時圖表配短文，簡單易懂', link: 'https://x.com/Barchart',
+                                mentionedStocks: [
+                                    { symbol: 'XOM', sentiment: '看多' },
+                                    { symbol: 'JPM', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'Heisenberg', memo: '關注股票名單與衍生性商品分析', link: 'https://x.com/Mr_Derivatives',
+                                mentionedStocks: [
+                                    { symbol: 'SPY', sentiment: '看多' },
+                                    { symbol: 'VIX', sentiment: '看空' }
+                                ]
+                            },
+                            {
+                                name: 'amitisinvesting', memo: '專注 PLTR 分析與科技股估值', link: 'https://x.com/amitisinvesting',
+                                mentionedStocks: [
+                                    { symbol: 'PLTR', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'Banana3Stocks', memo: '厲害投資人經營社群與盤勢', link: 'https://x.com/Banana3Stocks',
+                                mentionedStocks: [
+                                    { symbol: 'TSLA', sentiment: '看多' },
+                                    { symbol: 'SMCI', sentiment: '中立' }
+                                ]
+                            },
+                            {
+                                name: 'Shay Boloor', memo: '股市動態分享與專屬討論群', link: 'https://x.com/StocksSavvyShay',
+                                mentionedStocks: [
+                                    { symbol: 'AMZN', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'The Long Investor', memo: '個人長期價值投資人', link: 'https://x.com/TheLongInvest',
+                                mentionedStocks: [
+                                    { symbol: 'GOOGL', sentiment: '看多' },
+                                    { symbol: 'BRK.B', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'Mike Investing', memo: '技術分析為主，給予買入價位', link: 'https://x.com/MrMikeInvesting',
+                                mentionedStocks: [
+                                    { symbol: 'NVDA', sentiment: '看多' },
+                                    { symbol: 'AMD', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'Jesse Cohen', memo: 'Investing.com 推特運營者', link: 'https://x.com/JesseCohenInv',
+                                mentionedStocks: [
+                                    { symbol: 'SPY', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'MapleStax', memo: '技術分析與投資策略分享', link: 'https://x.com/MapleStax',
+                                mentionedStocks: [
+                                    { symbol: 'COIN', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'dmac', memo: '技術分析圖表與自身投資紀錄', link: 'https://x.com/dmac',
+                                mentionedStocks: [
+                                    { symbol: 'QQQ', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'Data Driven Investing', memo: '技術分析，較少提及 Mag7', link: 'https://x.com/DataDInvesting',
+                                mentionedStocks: [
+                                    { symbol: 'IWM', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'StockWhale', memo: '以5分鐘技術分析影片為主', link: 'https://x.com/mrstockwhale',
+                                mentionedStocks: [
+                                    { symbol: 'SPY', sentiment: '看多' }
+                                ]
+                            },
+                            {
+                                name: 'Sober聊選擇權, CFA', memo: '選擇權交易策略與基本面', link: 'https://x.com/amy6tina',
+                                mentionedStocks: [
+                                    { symbol: 'SPY', sentiment: '中立' }
+                                ]
+                            }
+                        ],
 
                         topPicks: [
                             {
                                 symbol: 'DJT', market: 'US', name: '川普媒體科技集團', currency: '$', price: '34.20', change: '5.80', isRealtime: false, isTrump: true,
                                 score: 94, signal: 'STRONG BULLISH',
-                                breakdown: { tech: 34, volume: 20, chips: 23, kol: 10, fundamental: 7 },
-                                bullReasons: ['川普於 Truth Social 頻繁發文拉抬熱度', '散戶論壇與美股社群討論聲量暴增', '突破短期均線壓力展現強勁動能'],
+                                bullReasons: ['川普於 Truth Social 頻繁發文拉抬熱度', 'StockMKTNewz 與 QuiverQuant 高度關注點位'],
                                 risks: ['政治議題敏感度高，短線波動劇烈'],
                                 tradingViewSymbol: 'NASDAQ:DJT'
                             },
                             {
                                 symbol: 'NVDA', market: 'US', name: 'NVIDIA 輝達', currency: '$', price: '128.5', change: '2.15', isRealtime: false, isTrump: false,
                                 score: 91, signal: 'STRONG BULLISH',
-                                breakdown: { tech: 33, volume: 19, chips: 23, kol: 9, fundamental: 7 },
-                                bullReasons: ['Adam Mancini 標註點位延續強勢', 'The Kobeissi Letter 指出 AI 晶片需求持續創高', 'QuiverQuant 顯示機構籌碼持續進駐'],
-                                risks: ['美股科技股大盤短線震盪'],
+                                bullReasons: ['Adam Mancini、The Kobeissi Letter 等多位 KOL 共識看多', 'AI 晶片長線需求強勁'],
+                                risks: ['美股科技股大盤短線高位震盪'],
                                 tradingViewSymbol: 'NASDAQ:NVDA'
                             },
                             {
                                 symbol: '2330', market: 'TW', name: '台積電', currency: 'NT$', price: '985.0', change: '1.20', isRealtime: false, isTrump: false,
                                 score: 90, signal: 'STRONG BULLISH',
-                                breakdown: { tech: 32, volume: 18, chips: 24, kol: 8, fundamental: 8 },
-                                bullReasons: ['MA5 > MA20 > MA60 多頭排列', '外資與法人籌碼持續回補'],
-                                risks: ['靠近千元整數關卡卡解套賣壓'],
+                                bullReasons: ['Gooaye 股癌與問月wmoon 等台股 KOL 共識強烈', '先進製程領先地位鞏固'],
+                                risks: ['千元大關前解套賣壓'],
                                 tradingViewSymbol: 'TWSE:2330'
                             }
-                        ],
-
-                        kolConsensusList: [
-                            { 
-                                name: 'DJT (川普媒體)', symbol: 'DJT', market: 'US', bullRatio: 88, neutralRatio: 8, bearRatio: 4,
-                                comments: [
-                                    { kolName: 'Donald J. Trump', sentiment: '看多', summary: '於 Truth Social 宣示媒體平台用戶爆發性成長與影響力', link: 'https://truthsocial.com/@realDonaldTrump' },
-                                    { kolName: 'StockMKTNewz', sentiment: '看多', summary: '美股市場熱度第一名，散戶與社群關注度極高', link: 'https://x.com/StockMKTNewz' },
-                                    { kolName: 'QuiverQuant', sentiment: '看多', summary: '華爾街政治與散戶交易量能差距迅速縮小', link: 'https://x.com/QuiverQuant' },
-                                    { kolName: 'The Kobeissi Letter', sentiment: '中立', summary: '波動度高，建議嚴格控管部位與停損點位', link: 'https://x.com/KobeissiLetter' }
-                                ]
-                            },
-                            { 
-                                name: 'NVIDIA', symbol: 'NVDA', market: 'US', bullRatio: 84, neutralRatio: 11, bearRatio: 5,
-                                comments: [
-                                    { kolName: 'Adam Mancini', sentiment: '看多', summary: '精準點位突破前高，S&P500 科技權重股導航標的', link: 'https://x.com/AdamMancini4' },
-                                    { kolName: 'Cathie Wood', sentiment: '看多', summary: '長期看好 AI 顛覆性創新產業帶來的經濟效益', link: 'https://x.com/CathieDWood' },
-                                    { kolName: 'Peter Brandt', sentiment: '看多', summary: '圖表呈現長期經典多頭型態，趨勢延續', link: 'https://x.com/PeterLBrandt' },
-                                    { kolName: 'amitisinvesting', sentiment: '中立', summary: '科技股整體評價面高，建議隨籌碼拉回分批佈局', link: 'https://x.com/amitisinvesting' }
-                                ]
-                            },
-                            { 
-                                name: '台積電', symbol: '2330', market: 'TW', bullRatio: 80, neutralRatio: 15, bearRatio: 5,
-                                comments: [
-                                    { kolName: 'Gooaye 股癌', sentiment: '看多', summary: '先進封裝與資本支出穩健，長線基本面無虞', link: 'https://linktr.ee/gooaye' },
-                                    { kolName: 'XTrader貓姐美股交易', sentiment: '看多', summary: '關注權值股突破點位與風險管理心得', link: 'https://x.com/maojietrading' }
-                                ]
-                            }
-                        ],
-
-                        // 完全對應圖片①與圖片②中的美股 KOL 名單
-                        kolLeaderboard: [
-                            { name: 'Donald J. Trump', market: 'US', memo: 'Truth Social 官方帳號', channelLink: 'https://truthsocial.com/@realDonaldTrump' },
-                            { name: 'Cathie Wood', market: 'US', memo: '投資公司 CEO, 偏向經濟', channelLink: 'https://x.com/CathieDWood' },
-                            { name: 'The Kobeissi Letter', market: 'US', memo: '財經新聞、股市動態', channelLink: 'https://x.com/KobeissiLetter' },
-                            { name: 'StockMKTNewz', market: 'US', memo: '股市即時新聞', channelLink: 'https://x.com/StockMKTNewz' },
-                            { name: 'Adam Mancini', market: 'US', memo: 'S&P 500 與期貨精準點位', channelLink: 'https://x.com/AdamMancini4' },
-                            { name: 'Peter Brandt', market: 'US', memo: '傳奇資深古典圖表派交易員', channelLink: 'https://x.com/PeterLBrandt' },
-                            { name: 'QuiverQuant', market: 'US', memo: '國會議員與華爾街籌碼分析', channelLink: 'https://x.com/QuiverQuant' },
-                            { name: 'XTrader貓姐美股交易', market: 'US', memo: '正股波段與風險管理', channelLink: 'https://x.com/maojietrading' },
-                            { name: 'TrendSpider', market: 'US', memo: '圖表編輯與技術分析', channelLink: 'https://x.com/trendspider?lang=zh-Hant' },
-                            { name: 'Traderstewie', market: 'US', memo: '專欄投資策略與技術線圖', channelLink: 'https://x.com/traderstewie' },
-                            { name: 'WOLF_Financial', market: 'US', memo: '投資人 Podcast 與社群經營', channelLink: 'https://x.com/WOLF_Financial' },
-                            { name: 'Barchart', market: 'US', memo: '即時圖表配短文', channelLink: 'https://x.com/Barchart' },
-                            { name: 'Heisenberg', market: 'US', memo: '關注股票名單與技術分析', channelLink: 'https://x.com/Mr_Derivatives' },
-                            { name: 'amitisinvesting', market: 'US', memo: '專注 PLTR 與科技股分析', channelLink: 'https://x.com/amitisinvesting' },
-                            { name: 'Sober聊選擇權, CFA', market: 'US', memo: '選擇權策略與財報解析', channelLink: 'https://x.com/amy6tina' }
                         ]
                     }
                 },
@@ -404,16 +509,6 @@
                     filteredPicks() {
                         if (this.activeTab === 'ALL') return this.topPicks;
                         return this.topPicks.filter(p => p.market === this.activeTab);
-                    },
-                    filteredKolConsensus() {
-                        const target = this.kolMarketFilter !== 'ALL' ? this.kolMarketFilter : this.activeTab;
-                        if (target === 'ALL') return this.kolConsensusList;
-                        return this.kolConsensusList.filter(k => k.market === target);
-                    },
-                    filteredKolLeaderboard() {
-                        const target = this.kolMarketFilter !== 'ALL' ? this.kolMarketFilter : this.activeTab;
-                        if (target === 'ALL') return this.kolLeaderboard;
-                        return this.kolLeaderboard.filter(k => k.market === target);
                     }
                 },
                 async mounted() {
@@ -422,7 +517,6 @@
                 methods: {
                     setActiveTab(tab) {
                         this.activeTab = tab;
-                        this.kolMarketFilter = tab;
                     },
                     getSignalIcon(s) {
                         return s === 'STRONG BULLISH' ? '🚀' : '🟢';
@@ -432,7 +526,7 @@
                             ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
                             : 'bg-teal-500/20 text-teal-300 border-teal-500/40';
                     },
-                    getSentimentClass(s) {
+                    getSentimentBadgeClass(s) {
                         if (s === '看多') return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
                         if (s === '看空') return 'bg-red-500/20 text-red-400 border border-red-500/30';
                         return 'bg-slate-500/20 text-slate-300 border border-slate-500/30';
